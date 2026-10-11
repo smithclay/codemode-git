@@ -14,7 +14,8 @@ export const TRAILERS = {
   execution: "Codemode-Execution",
   status: "Codemode-Status",
   connectors: "Codemode-Connectors",
-  snippets: "Codemode-Snippets"
+  snippets: "Codemode-Snippets",
+  skillsRef: "Codemode-Skills-Ref"
 } as const;
 
 export type CommitContent = {
@@ -44,13 +45,15 @@ export function defaultIntent(exec: ExecutionState): string {
 export function toCommit(
   exec: ExecutionState,
   status: ExecutionEndStatus,
-  intent: string
+  intent: string,
+  extraTrailers: Record<string, string> = {}
 ): CommitContent {
   const trailers: [string, string][] = [
     [TRAILERS.execution, exec.id],
     [TRAILERS.status, status],
     [TRAILERS.connectors, (exec.connectors ?? []).join(", ")],
-    [TRAILERS.snippets, snippetsUsed(exec.code).join(", ")]
+    [TRAILERS.snippets, snippetsUsed(exec.code).join(", ")],
+    ...Object.entries(extraTrailers)
   ];
   const message = [
     intent.split("\n")[0],

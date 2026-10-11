@@ -17,6 +17,8 @@ export type GitHistoryOptions = {
   redact?: (exec: ExecutionState) => ExecutionState;
   /** Sandbox namespace for the read-only history tools. Defaults to "history". */
   name?: string;
+  /** Extra `Key: value` trailers for each commit, e.g. the skills ref the agent ran with. */
+  extraTrailers?: (exec: ExecutionState) => Record<string, string>;
 };
 
 type CommitRow = {
@@ -141,7 +143,7 @@ export class GitHistoryConnector extends CodemodeConnector {
     if (!exec) return;
     const redacted = (this.#options.redact ?? truncateValues)(exec);
     const intent = (await this.#options.describe?.(exec)) ?? defaultIntent(exec);
-    const content = toCommit(redacted, status, intent);
+    const content = toCommit(redacted, status, intent, this.#options.extraTrailers?.(exec));
     this.#state.storage.sql.exec(
       `INSERT OR IGNORE INTO ${TABLE} (execution_id, status, intent, content, created_at)
        VALUES (?, ?, ?, ?, ?)`,

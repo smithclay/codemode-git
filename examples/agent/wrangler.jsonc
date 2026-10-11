@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "codemode-git-example",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "worker_loaders": [{ "binding": "LOADER" }],
+  "artifacts": [{ "binding": "ARTIFACTS", "namespace": "codemode-git", "remote": true }],
+  "durable_objects": {
+    "bindings": [{ "name": "AGENT", "class_name": "CodeAgent" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CodeAgent"] }],
+  "observability": { "enabled": true }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "codemode-git",
+  "version": "0.1.0",
+  "description": "Every Code Mode execution becomes a git commit on a Cloudflare Artifacts repo.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "isomorphic-git": "^1.30.0"
+  },
+  "peerDependencies": {
+    "@cloudflare/codemode": ">=0.5.0"
+  },
+  "devDependencies": {
+    "@cloudflare/codemode": "^0.5.3",
+    "@cloudflare/workers-types": "^5.20260901.1",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "license": "MIT"
+}

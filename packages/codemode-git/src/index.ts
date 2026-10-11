@@ -21,3 +21,4 @@ export {
   type SyncSkillsOptions,
   type SyncSkillsResult
 } from "./skills";
+export { EXAMPLE_EMBEDDING_MODEL, indexExample, retrieveExamples, type Example } from "./examples";

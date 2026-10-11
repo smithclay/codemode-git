@@ -1,18 +1,34 @@
 import { DurableObject } from "cloudflare:workers";
 import { createCodemodeRuntime, DynamicWorkerExecutor, type CodemodeConnector } from "@cloudflare/codemode";
-import { ArtifactsSink, GitHistoryConnector, syncSkills, toFinalCommit, TRAILERS } from "codemode-git";
+import {
+  ArtifactsSink,
+  GitHistoryConnector,
+  indexExample,
+  retrieveExamples,
+  syncSkills,
+  toFinalCommit,
+  TRAILERS,
+  type Example
+} from "codemode-git";
 import { runAi } from "codemode-git-curator/ai";
 import { DabstepConnector, SCHEMA } from "./connector";
 
 export type Env = {
   DB: D1Database;
+  /** Vectorize index of answer-producing runs (the codemode-git-examples arm). */
+  EXAMPLES: Vectorize;
   ARTIFACTS: Artifacts;
   AI: Ai;
   LOADER: WorkerLoader;
 };
 
 /** baseline: stock Code Mode. codemode-git: + per-agent git history + curated skills. */
-export type Arm = "baseline" | "codemode-git";
+/**
+ * baseline: stock Code Mode.
+ * codemode-git: + per-agent git history + curated skills (snippets).
+ * codemode-git-examples: + per-agent git history + other agents' answer-producing runs as examples.
+ */
+export type Arm = "baseline" | "codemode-git" | "codemode-git-examples";
 
 export type Task = { task_id: string; question: string; guidelines: string; level: string };
 
@@ -46,6 +62,8 @@ export type SolveResult = {
   errors: number;
   tokens: { input: number; output: number };
   skillsOffered: string[];
+  /** Example runs (repo@sha) shown to the agent (codemode-git-examples arm). */
+  examplesOffered: string[];
   skillsUsed: string[];
   skillsRef: string | null;
   ms: number;
@@ -53,13 +71,20 @@ export type SolveResult = {
   transcript: { role: string; content: string }[];
 };
 
-export const agentRepo = (run: string, key: string) => `${run}-codemode-git-t${key}`;
+export const agentRepo = (run: string, key: string, arm: Arm = "codemode-git") => `${run}-${arm}-t${key}`;
 export const skillsRepo = (run: string) => `${run}-skills`;
 
 // The manual is ~22k chars; agents must be able to read it whole.
 const MAX_FEEDBACK_CHARS = 24_000;
 
-function systemPrompt(skills: { name: string; description: string }[]): string {
+function examplesText(examples: Example[]): string {
+  if (!examples.length) return "";
+  return `\n## How other agents approached similar questions\nUnverified code other agents ran to answer related questions. Their interpretations may be wrong: check every rule against the manual before relying on it.\n${examples
+    .map((e) => `### ${e.question} (${e.repo}@${e.sha.slice(0, 7)})\n\`\`\`js\n${e.code.trim()}\n\`\`\``)
+    .join("\n\n")}\n`;
+}
+
+function systemPrompt(skills: { name: string; description: string }[], examples: Example[] = []): string {
   return `You are a data analyst agent. You answer a question about a payments dataset by writing JavaScript that runs in a sandbox.
 
 ## How to work
@@ -86,7 +111,7 @@ ${
         .map((s) => `- ${s.name}: ${s.description}`)
         .join("\n")}\n`
     : ""
-}`;
+}${examplesText(examples)}`;
 }
 
 const TOOLS = [
@@ -199,12 +224,17 @@ export class Solver extends DurableObject<Env> {
     let history: GitHistoryConnector | undefined;
     let sink: ArtifactsSink | undefined;
     let skillsRef: string | null = null;
-    if (arm === "codemode-git") {
-      sink = new ArtifactsSink({ artifacts: this.env.ARTIFACTS, repo: agentRepo(run, agentKey(req)) });
+    let examples: Example[] = [];
+    const repoName = agentRepo(run, agentKey(req), arm);
+    if (arm !== "baseline") {
+      sink = new ArtifactsSink({ artifacts: this.env.ARTIFACTS, repo: repoName });
       history = new GitHistoryConnector(this.ctx, this.env, {
         sink,
         describe: () => `t${task.task_id}: ${task.question}`.slice(0, 200),
-        extraTrailers: (): Record<string, string> => (skillsRef ? { [TRAILERS.skillsRef]: skillsRef } : {})
+        extraTrailers: (): Record<string, string> => ({
+          ...(skillsRef ? { [TRAILERS.skillsRef]: skillsRef } : {}),
+          ...(examples.length ? { [TRAILERS.examples]: examples.map((e) => `${e.repo}@${e.sha.slice(0, 12)}`).join(", ") } : {})
+        })
       });
       connectors.push(history);
     }
@@ -239,8 +269,19 @@ export class Solver extends DurableObject<Env> {
       }
     }
 
+    // codemode-git-examples: the closest answer-producing runs of other tasks in this run.
+    if (arm === "codemode-git-examples") {
+      examples = await retrieveExamples({
+        ai: this.env.AI,
+        index: this.env.EXAMPLES,
+        scope: run,
+        question: task.question,
+        excludeTask: task.task_id
+      });
+    }
+
     const messages: ChatMessage[] = [
-      { role: "system", content: systemPrompt(offered) },
+      { role: "system", content: systemPrompt(offered, examples) },
       { role: "user", content: `Question: ${task.question}\n\nAnswer guidelines: ${task.guidelines}` }
     ];
     const result: SolveResult = {
@@ -255,6 +296,7 @@ export class Solver extends DurableObject<Env> {
       errors: 0,
       tokens: { input: 0, output: 0 },
       skillsOffered: offered.map((s) => s.name),
+      examplesOffered: examples.map((e) => `${e.repo}@${e.sha.slice(0, 12)}`),
       skillsUsed: [],
       skillsRef,
       ms: 0,
@@ -338,6 +380,23 @@ export class Solver extends DurableObject<Env> {
           "answer.json": `${JSON.stringify({ task_id: task.task_id, question: task.question, answer: result.answer, run: finalSha }, null, 2)}\n`
         })
       );
+      // The answer-producing run becomes an example for later agents in this run.
+      if (arm === "codemode-git-examples") {
+        const code = (await runtime.executions()).find((e) => e.id === lastCompleted)?.code;
+        if (code) {
+          await indexExample({
+            ai: this.env.AI,
+            index: this.env.EXAMPLES,
+            scope: run,
+            task: task.task_id,
+            repo: repoName,
+            sha: finalSha,
+            question: task.question,
+            code,
+            ok: !result.exhausted
+          });
+        }
+      }
     }
     result.ms = Date.now() - started;
     result.transcript = messages.slice(1).map((m) => ({

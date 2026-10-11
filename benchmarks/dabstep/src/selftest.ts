@@ -6,10 +6,15 @@ import type { DynamicWorkerExecutor, ResolvedProvider } from "@cloudflare/codemo
 import { replay, fixtureProviders, type CallRecord } from "codemode-git-curator/verify";
 import { safeExecute, verifyRefactor, withHelpers, type LedgerRow, type Program } from "codemode-git-curator/refactor";
 import { runTests } from "codemode-git-curator/ledger";
+import { indexExample, retrieveExamples } from "codemode-git";
 
 type Check = { name: string; ok: boolean; detail?: string };
 
-export async function selfTest(executor: DynamicWorkerExecutor, live: ResolvedProvider[]): Promise<Check[]> {
+export async function selfTest(
+  executor: DynamicWorkerExecutor,
+  live: ResolvedProvider[],
+  vectors?: { ai: Ai; index: Vectorize }
+): Promise<Check[]> {
   const checks: Check[] = [];
   const check = (name: string, ok: boolean, detail?: unknown) =>
     checks.push({ name, ok, ...(ok ? {} : { detail: JSON.stringify(detail)?.slice(0, 300) }) });
@@ -80,6 +85,28 @@ export async function selfTest(executor: DynamicWorkerExecutor, live: ResolvedPr
   const calls: CallRecord[] = [{ connector: "data", method: "sql", args: { query: "SELECT 1 AS one" }, result: { rows: [{ one: 1 }] } }];
   const rep = await replay(executor, `async () => (await data.sql({ query: "SELECT 1 AS one" })).rows[0].one`, { input: null, calls, expected: 1 }, fixtureProviders(calls));
   check("fixture replay reproduces a recorded run", rep.ok, rep);
+
+  // Examples layer: index two runs under a throwaway scope, retrieve, clean up.
+  if (vectors) {
+    const scope = `selftest-${crypto.randomUUID().slice(0, 8)}`;
+    const shaA = crypto.randomUUID().replaceAll("-", "").slice(0, 32);
+    const shaB = crypto.randomUUID().replaceAll("-", "").slice(0, 32);
+    const base = { ...vectors, scope, repo: "selftest" };
+    await indexExample({ ...base, task: "a", sha: shaA, ok: true, question: "What is the total fee Rafa_AI paid in March 2023?", code: "async () => { /* sum fees for Rafa_AI in March */ }" });
+    await indexExample({ ...base, task: "b", sha: shaB, ok: false, question: "What is the total fee Crossfit_Hanna paid in May 2023?", code: "async () => { /* sum fees for Crossfit_Hanna in May */ }" });
+    let found: Awaited<ReturnType<typeof retrieveExamples>> = [];
+    // Vectorize is eventually consistent: a new vector is queryable after ~30s,
+    // but filterable by metadata only after ~1-2 minutes.
+    for (let i = 0; i < 40 && !found.length; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      found = await retrieveExamples({ ...vectors, scope, question: "Total fees Golfclub_Baron_Friso paid in June 2023?", excludeTask: "zzz" });
+    }
+    check("a similar question retrieves the indexed example", found.length === 1 && found[0]!.sha === shaA, found);
+    check("examples marked not-ok are never retrieved", !found.some((e) => e.sha === shaB), found);
+    const own = await retrieveExamples({ ...vectors, scope, question: "Total fees Rafa_AI paid in March 2023?", excludeTask: "a" });
+    check("an agent's own task is excluded", !own.some((e) => e.task === "a"), own);
+    await vectors.index.deleteByIds([shaA, shaB]);
+  }
 
   return checks;
 }

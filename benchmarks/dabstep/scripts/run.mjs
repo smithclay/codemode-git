@@ -29,11 +29,13 @@ const { values: opts } = parseArgs({
     tasks: { type: "string" },
     limit: { type: "string" },
     concurrency: { type: "string", default: "5" },
-    "max-steps": { type: "string", default: "20" }
+    "max-steps": { type: "string", default: "20" },
+    // Examples arm: wait between waves so new examples become filterable in Vectorize (~1-2 min).
+    settle: { type: "string", default: "120" }
   }
 });
-if (!opts.run || !["baseline", "codemode-git"].includes(opts.arm)) {
-  console.error("usage: --run <id> --arm baseline|codemode-git [--model] [--split dev|all] [--tasks a,b] [--limit n]");
+if (!opts.run || !["baseline", "codemode-git", "codemode-git-examples"].includes(opts.arm)) {
+  console.error("usage: --run <id> --arm baseline|codemode-git|codemode-git-examples [--model] [--split dev|all] [--tasks a,b] [--limit n]");
   process.exit(1);
 }
 
@@ -120,8 +122,13 @@ for (let i = 0; i < tasks.length; i += size) {
     console.log(
       `  t${r.task_id}#${r.repeat}: ${JSON.stringify(r.answer).slice(0, 50)} · ${r.executions} runs, ${r.errors} errors, ` +
         `${r.exhausted ? "EXHAUSTED, " : ""}` +
-        `${r.tokens.input + r.tokens.output} tok${r.skillsUsed.length ? ` · skills ${r.skillsUsed.join(",")}` : ""}`
+        `${r.tokens.input + r.tokens.output} tok${r.skillsUsed.length ? ` · skills ${r.skillsUsed.join(",")}` : ""}` +
+        `${r.examplesOffered?.length ? ` · ${r.examplesOffered.length} examples` : ""}`
     );
+  }
+  if (opts.arm === "codemode-git-examples" && i + size < tasks.length) {
+    console.log(`  waiting ${opts.settle}s for examples to become searchable`);
+    await new Promise((r) => setTimeout(r, Number(opts.settle) * 1000));
   }
   if (opts.arm === "codemode-git") {
     const res = await fetch(`${opts.url}/curate/${opts.run}/backfill`, { method: "POST", headers: auth });

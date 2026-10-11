@@ -14,7 +14,7 @@ export class DabstepCurator extends Curator<Env> {
 
   /** Harness self-test (see selftest.ts): canned inputs, real sandbox and D1, no model calls. */
   async selfTest() {
-    return selfTest(this.executor, await this.liveProvidersForTests());
+    return selfTest(this.executor, await this.liveProvidersForTests(), { ai: this.env.AI, index: this.env.EXAMPLES });
   }
 
   protected override async referenceDocs() {

@@ -16,6 +16,8 @@ export const TRAILERS = {
   connectors: "Codemode-Connectors",
   snippets: "Codemode-Snippets",
   skillsRef: "Codemode-Skills-Ref",
+  /** Example runs (repo@sha) the agent was shown before it started. */
+  examples: "Codemode-Examples",
   /** On a marker commit: the sha of the run that produced the agent's final result. */
   final: "Codemode-Final"
 } as const;

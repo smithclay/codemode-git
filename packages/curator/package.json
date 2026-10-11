@@ -23,6 +23,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./curator": "./src/curator.ts",
-    "./ai": "./src/ai.ts"
+    "./ai": "./src/ai.ts",
+    "./verify": "./src/verify.ts",
+    "./refactor": "./src/refactor.ts",
+    "./ledger": "./src/ledger.ts"
   }
 }

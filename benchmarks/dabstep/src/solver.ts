@@ -145,7 +145,7 @@ async function chat(ai: Ai, model: string, messages: ChatMessage[]) {
   };
 }
 
-function parseArgs(raw: unknown): Record<string, string> {
+export function parseArgs(raw: unknown): Record<string, string> {
   // Some models' tool-call arguments arrive already parsed.
   if (raw && typeof raw === "object") return raw as Record<string, string>;
   try {
@@ -157,7 +157,7 @@ function parseArgs(raw: unknown): Record<string, string> {
 }
 
 /** What the model wants to do: from tool calls, or from text if it didn't use them. */
-function actionsFrom(text: string, toolCalls: ToolCall[]): Action[] {
+export function actionsFrom(text: string, toolCalls: ToolCall[]): Action[] {
   const actions: Action[] = [];
   for (const call of toolCalls) {
     const args = parseArgs(call.function.arguments);
@@ -182,7 +182,7 @@ function actionsFrom(text: string, toolCalls: ToolCall[]): Action[] {
   return [];
 }
 
-function clip(value: unknown): string {
+export function clip(value: unknown): string {
   // JSON.stringify(undefined) is undefined: code that returns nothing.
   const text = typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
   return text.length > MAX_FEEDBACK_CHARS ? `${text.slice(0, MAX_FEEDBACK_CHARS)}… (truncated, ${text.length} chars)` : text;

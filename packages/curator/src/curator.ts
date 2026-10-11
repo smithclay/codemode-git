@@ -680,6 +680,15 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
   }
 
   /** Every method of every live connector, regardless of what recordings contain (for tests). */
+  liveProvidersForTests(): Promise<ResolvedProvider[]> {
+    return this.#liveProviders();
+  }
+
+  /** The sandbox executor, for harness self-tests. */
+  get executor(): DynamicWorkerExecutor {
+    return this.#executor;
+  }
+
   async #liveProviders(): Promise<ResolvedProvider[]> {
     const providers: ResolvedProvider[] = [];
     for (const connector of this.liveConnectors()) {

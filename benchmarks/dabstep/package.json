@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "cf dev",
     "deploy": "cf deploy",
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@cloudflare/codemode": "^0.5.3",
@@ -18,6 +19,7 @@
     "cf": "1.0.0-beta.14",
     "typescript": "^5.9.0",
     "undici": "^7.29.1",
-    "wrangler": "^4.149.0"
+    "wrangler": "^4.149.0",
+    "vitest": "^3.2.0"
   }
 }

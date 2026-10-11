@@ -1,5 +1,6 @@
 import { Curator } from "codemode-git-curator/curator";
 import { DabstepConnector } from "./connector";
+import { selfTest } from "./selftest";
 import { agentKey, agentRepo, skillsRepo, Solver, type Env, type SolveRequest } from "./solver";
 
 export { CodemodeRuntime } from "codemode-git";
@@ -9,6 +10,11 @@ export { Solver };
 export class DabstepCurator extends Curator<Env> {
   protected override liveConnectors() {
     return [new DabstepConnector(this.ctx, this.env)];
+  }
+
+  /** Harness self-test (see selftest.ts): canned inputs, real sandbox and D1, no model calls. */
+  async selfTest() {
+    return selfTest(this.executor, await this.liveProvidersForTests());
   }
 
   protected override async referenceDocs() {
@@ -45,6 +51,11 @@ async function route(request: Request, env: FullEnv): Promise<Response> {
     if (!RUN_ID.test(req.run)) return new Response("bad run id", { status: 400 });
     const id = env.SOLVER.idFromName(`${req.run}/${req.arm}/${agentKey(req)}`);
     return Response.json(await env.SOLVER.get(id).solve(req));
+  }
+
+  if (url.pathname === "/selftest" && request.method === "POST") {
+    const checks = await env.CURATOR.get(env.CURATOR.idFromName("selftest")).selfTest();
+    return Response.json({ passed: checks.every((c) => c.ok), checks }, { status: checks.every((c) => c.ok) ? 200 : 500 });
   }
 
   // Prototype (read-only): refactor a run's answer-producing programs into

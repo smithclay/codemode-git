@@ -1,4 +1,6 @@
-import { Curator, type Env, type PushedEvent } from "./curator";
+import { Curator, type Env as CuratorEnv, type PushedEvent } from "./curator";
+
+type Env = CuratorEnv & { CURATOR: DurableObjectNamespace<Curator> };
 
 export { Curator };
 

@@ -1,3 +1,4 @@
+import { runAi } from "./ai";
 // Turns a cluster of similar runs (from different agents) into one
 // parameterized snippet. Voyager-style: propose, verify by replay, and on
 // failure try once more with the verifier's feedback.
@@ -72,7 +73,7 @@ function parseProposal(text: string, sources: number): Proposal {
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 async function chat(ai: Ai, messages: ChatMessage[]): Promise<string> {
-  const out = (await (ai.run as (model: string, input: unknown) => Promise<unknown>)(CODE_MODEL, {
+  const out = (await runAi(ai, CODE_MODEL, {
     messages,
     max_completion_tokens: 4000
   })) as { choices?: { message?: { content?: string } }[]; response?: string };

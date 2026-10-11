@@ -68,9 +68,14 @@ export function fixtureProviders(calls: CallRecord[]): ResolvedProvider[] {
 }
 
 /** Run `snippetCode` the way `codemode.run(name, input)` does, against fixtures. */
-export async function replay(executor: Executor, snippetCode: string, testCase: ReplayCase): Promise<ReplayOutcome> {
+export async function replay(
+  executor: Executor,
+  snippetCode: string,
+  testCase: ReplayCase,
+  providers: ResolvedProvider[] = fixtureProviders(testCase.calls)
+): Promise<ReplayOutcome> {
   const code = `async () => {\n  const snippet = (${normalizeCode(snippetCode)});\n  return await snippet(${JSON.stringify(testCase.input ?? null)});\n}`;
-  const out = await executor.execute(code, fixtureProviders(testCase.calls));
+  const out = await executor.execute(code, providers);
   if (out.error) return { ok: false, error: out.error };
   if (stableStringify(out.result) !== stableStringify(testCase.expected)) {
     return {

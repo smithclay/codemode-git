@@ -1,5 +1,6 @@
+import { runAi } from "./ai";
 import { DurableObject } from "cloudflare:workers";
-import { DynamicWorkerExecutor } from "@cloudflare/codemode";
+import { DynamicWorkerExecutor, type CodemodeConnector, type ResolvedProvider } from "@cloudflare/codemode";
 import {
   ArtifactsSink,
   FILES,
@@ -13,16 +14,18 @@ import {
 } from "codemode-git";
 import { coveringSkill, reusability, sameTask } from "./clef";
 import { Generalizer, type Proposal, type SourceRun } from "./generalize";
-import { parseCalls, replay, type CallRecord } from "./verify";
+import { fixtureProviders, parseCalls, replay, type CallRecord } from "./verify";
 
+/** What the curator itself needs. Hosts add their own bindings on top. */
 export type Env = {
   ARTIFACTS: Artifacts;
   AI: Ai;
   LOADER: WorkerLoader;
-  CURATOR: DurableObjectNamespace<Curator>;
 };
 
-export const SKILLS_REPO = "skills";
+/** Which repos a curator watches and where it publishes. One curator, one scope. */
+export type CuratorScope = { repoPrefix: string; skillsRepo: string };
+export const DEFAULT_SCOPE: CuratorScope = { repoPrefix: "agent-", skillsRepo: "skills" };
 const EMBEDDING_MODEL = "@cf/qwen/qwen3-embedding-0.6b";
 
 /** Tunables. A cluster needs this many distinct agents before it becomes a skill. */
@@ -99,24 +102,29 @@ function cosine(a: number[], b: number[]): number {
 }
 
 /**
- * One curator per Artifacts namespace. It is the only writer to the skills
- * repo. Agents never wait on it: it consumes push events after the fact.
+ * One curator per scope: a set of agent repos (by name prefix) and the skills
+ * repo it publishes to. It is the only writer to that skills repo. Agents
+ * never wait on it: it consumes push events after the fact.
  */
-export class Curator extends DurableObject<Env> {
-  #sink: ArtifactsSink;
+export class Curator<E extends Env = Env> extends DurableObject<E> {
+  #sink?: ArtifactsSink;
   #executor: DynamicWorkerExecutor;
   #queue: Promise<unknown> = Promise.resolve();
 
-  constructor(ctx: DurableObjectState, env: Env) {
+  /**
+   * Connectors to verify skills against for real, instead of replaying recorded
+   * results. Use for deterministic, read-only data (e.g. a static dataset),
+   * where recordings may be truncated. Everything else replays from calls.jsonl.
+   */
+  protected liveConnectors(): CodemodeConnector[] {
+    return [];
+  }
+
+  constructor(ctx: DurableObjectState, env: E) {
     super(ctx, env);
-    this.#sink = new ArtifactsSink({
-      artifacts: env.ARTIFACTS,
-      repo: SKILLS_REPO,
-      description: "Shared Code Mode skills, curated from agent runs",
-      author: { name: "codemode-git curator", email: "curator@codemode-git.local" }
-    });
-    this.#executor = new DynamicWorkerExecutor({ loader: env.LOADER, timeout: 10_000 });
+    this.#executor = new DynamicWorkerExecutor({ loader: env.LOADER, timeout: 30_000 });
     ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS runs (
         repo TEXT NOT NULL, sha TEXT NOT NULL, intent TEXT NOT NULL, status TEXT NOT NULL,
         code TEXT NOT NULL, calls TEXT NOT NULL, result TEXT NOT NULL, embedding TEXT NOT NULL,
@@ -138,6 +146,37 @@ export class Curator extends DurableObject<Env> {
 
   // ---- entry points -------------------------------------------------------
 
+  /** Set which repos this curator watches and where it publishes. */
+  configure(scope: CuratorScope): CuratorScope {
+    this.ctx.storage.sql.exec(
+      `INSERT OR REPLACE INTO config (key, value) VALUES ('scope', ?)`,
+      JSON.stringify(scope)
+    );
+    this.#sink = undefined;
+    return scope;
+  }
+
+  #scope(): CuratorScope {
+    const row = this.ctx.storage.sql
+      .exec<{ value: string }>(`SELECT value FROM config WHERE key = 'scope'`)
+      .toArray()[0];
+    return row ? (JSON.parse(row.value) as CuratorScope) : DEFAULT_SCOPE;
+  }
+
+  #inScope(repo: string): boolean {
+    const { repoPrefix, skillsRepo } = this.#scope();
+    return repo.startsWith(repoPrefix) && repo !== skillsRepo;
+  }
+
+  #skillsSink(): ArtifactsSink {
+    return (this.#sink ??= new ArtifactsSink({
+      artifacts: this.env.ARTIFACTS,
+      repo: this.#scope().skillsRepo,
+      description: "Shared Code Mode skills, curated from agent runs",
+      author: { name: "codemode-git curator", email: "curator@codemode-git.local" }
+    }));
+  }
+
   /** Handle push events. Serialized, so clustering sees a consistent view. */
   ingest(events: PushedEvent[]): Promise<{ ingested: number; published: string[] }> {
     const run = this.#queue.then(() => this.#ingest(events));
@@ -152,7 +191,7 @@ export class Curator extends DurableObject<Env> {
     do {
       const page = await this.env.ARTIFACTS.list({ limit: 100, cursor });
       for (const repo of page.repos) {
-        if (repo.name === SKILLS_REPO) continue;
+        if (!this.#inScope(repo.name)) continue;
         const branch = repo.defaultBranch || "main";
         events.push({
           type: "cf.artifacts.repo.pushed",
@@ -199,7 +238,7 @@ export class Curator extends DurableObject<Env> {
     const published: string[] = [];
     for (const event of events) {
       const repo = event.source.repoName;
-      if (repo === SKILLS_REPO) continue;
+      if (!this.#inScope(repo)) continue;
       let runs: RunRow[];
       try {
         runs = await this.#newRuns(repo, event.payload);
@@ -270,7 +309,7 @@ export class Curator extends DurableObject<Env> {
   }
 
   async #embed(text: string): Promise<number[]> {
-    const out = (await (this.env.AI.run as (m: string, i: unknown) => Promise<unknown>)(EMBEDDING_MODEL, {
+    const out = (await runAi(this.env.AI, EMBEDDING_MODEL, {
       documents: [text.slice(0, 6000)]
     })) as { data: number[][] };
     return out.data[0]!;
@@ -393,11 +432,12 @@ export class Curator extends DurableObject<Env> {
   async #verify(proposal: Proposal, runs: (SourceRun & { recorded: CallRecord[] })[]): Promise<string[]> {
     const failures: string[] = [];
     for (const [i, run] of runs.entries()) {
-      const outcome = await replay(this.#executor, proposal.code, {
-        input: proposal.inputs[i],
-        calls: run.recorded,
-        expected: run.result
-      });
+      const outcome = await replay(
+        this.#executor,
+        proposal.code,
+        { input: proposal.inputs[i], calls: run.recorded, expected: run.result },
+        this.#providers(run.recorded)
+      );
       if (!outcome.ok) failures.push(`source ${i + 1} (${run.repo}): ${outcome.error}`);
     }
     return failures;
@@ -449,7 +489,7 @@ export class Curator extends DurableObject<Env> {
         reusability: s.reusability
       }))
     };
-    const sha = await this.#sink.commit({
+    const sha = await this.#skillsSink().commit({
       message: [
         `Add skill ${name}`,
         "",
@@ -474,6 +514,25 @@ export class Curator extends DurableObject<Env> {
     sql.exec(`UPDATE skills SET commit_sha = ? WHERE name = ?`, sha, name);
     this.#record(key, runs.map((r) => r.repo), "published", name, `verified ${passed}/${runs.length} after ${rounds} round(s), commit ${sha}`);
     return name;
+  }
+
+  /** Live providers for connectors registered as live, recorded fixtures for the rest. */
+  #providers(calls: CallRecord[]): ResolvedProvider[] {
+    const live = new Map(this.liveConnectors().map((c) => [c.name(), c]));
+    const fixtures = fixtureProviders(calls.filter((c) => !live.has(c.connector)));
+    const liveProviders: ResolvedProvider[] = [...new Set(calls.map((c) => c.connector))]
+      .filter((name) => live.has(name))
+      .map((name) => {
+        const connector = live.get(name)!;
+        const methods = [...new Set(calls.filter((c) => c.connector === name).map((c) => c.method))];
+        return {
+          name,
+          fns: Object.fromEntries(
+            methods.map((method) => [method, (...args: unknown[]) => connector.executeTool(method, args[0] ?? {})])
+          )
+        };
+      });
+    return [...fixtures, ...liveProviders];
   }
 
   #record(cluster: string, repos: string[], outcome: Attempt["outcome"], skill: string | null, detail: string) {

@@ -1,3 +1,4 @@
+import { runAi } from "./ai";
 // Clustering and ranking decisions, made by Cloudflare's Clef decision model
 // (System One API). Clef reads a state plus typed questions and returns a
 // probability for every allowed answer, with all questions scored in one
@@ -18,7 +19,7 @@ type Answer =
 export type ScriptSummary = { intent: string; code: string };
 
 async function decide(ai: Ai, state: unknown, questions: Record<string, Question>): Promise<Record<string, Answer>> {
-  const out = (await (ai.run as (m: string, i: unknown) => Promise<unknown>)(CLEF_MODEL, {
+  const out = (await runAi(ai, CLEF_MODEL, {
     model: "clef",
     state,
     questions

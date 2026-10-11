@@ -42,13 +42,12 @@ examples/agent/          a stock Code Mode agent with a paginated `catalog` conn
 
 ## Run the example
 
-Prerequisites: Node 22+, a Cloudflare account with Artifacts enabled, and the `cf` CLI.
+Prerequisites: Node 22+, a Cloudflare account with Artifacts enabled, and the `cf` CLI (v1). The example is configured with `cloudflare.config.ts`, and `cf dev` / `cf deploy` drive it. The repo's `.npmrc` uses npm's `linked` install strategy because `cf` looks for its dev server in the project's own `node_modules`.
 
 ```bash
 npm install
 cf artifacts namespaces create --namespace codemode-git
-npx wrangler login
-cd examples/agent && npx wrangler dev
+cd examples/agent && cf dev
 ```
 
 Then run some code as agent `alice`:
@@ -69,11 +68,12 @@ EOF
 curl localhost:8787/agents/alice/commits
 ```
 
-Clone the agent's repo with a read token:
+Clone the agent's repo with a read token (use the `plaintext` value up to `?expires=`):
 
 ```bash
 cf artifacts namespaces tokens create codemode-git --repo agent-alice --scope read --ttl 3600
 git -c http.extraHeader="Authorization: Bearer <token>" clone https://<account-id>.artifacts.cloudflare.net/git/codemode-git/agent-alice.git
+git log --format='%h %s [%(trailers:key=Codemode-Status,valueonly)]'
 ```
 
 ## Tests

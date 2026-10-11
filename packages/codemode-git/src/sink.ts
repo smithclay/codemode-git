@@ -29,8 +29,12 @@ function tokenSecret(token: string): string {
   return token.split("?expires=")[0]!;
 }
 
+// The binding throws ArtifactsError with code NOT_FOUND, but the code can be
+// lost when the error crosses an RPC boundary (e.g. a remote binding in local
+// dev), leaving only the message.
 function isNotFound(err: unknown): boolean {
-  return (err as { code?: string } | null)?.code === "NOT_FOUND";
+  const e = err as { code?: string; message?: string } | null;
+  return e?.code === "NOT_FOUND" || /not found/i.test(e?.message ?? "");
 }
 
 /**

@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "dev": "cf dev",
+    "deploy": "cf deploy",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
@@ -12,8 +12,9 @@
     "codemode-git": "*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260901.1",
+    "@cloudflare/workers-types": "^5.20261011.1",
+    "cf": "^1.0.0-beta.14",
     "typescript": "^5.9.0",
-    "wrangler": "^4.145.0"
+    "wrangler": "^4.149.0"
   }
 }

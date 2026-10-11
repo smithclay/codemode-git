@@ -10,6 +10,11 @@ export class DabstepCurator extends Curator<Env> {
   protected override liveConnectors() {
     return [new DabstepConnector(this.ctx, this.env)];
   }
+
+  protected override async referenceDocs() {
+    const row = await this.env.DB.prepare("SELECT content FROM documents WHERE name = 'manual.md'").first<{ content: string }>();
+    return row?.content ?? "";
+  }
 }
 
 type FullEnv = Env & {
@@ -47,8 +52,15 @@ async function route(request: Request, env: FullEnv): Promise<Response> {
   const proto = /^\/prototype\/refactor\/([a-z0-9-]+)$/.exec(url.pathname);
   if (proto && request.method === "POST") {
     const run = proto[1]!;
-    const opts = (await request.json().catch(() => ({}))) as { threshold?: number; batchSize?: number; only?: number };
-    const stub = env.CURATOR.get(env.CURATOR.idFromName(`prototype:${run}:${opts.only ?? "all"}`));
+    const opts = (await request.json().catch(() => ({}))) as {
+      threshold?: number;
+      batchSize?: number;
+      only?: number;
+      ledger?: boolean;
+    };
+    const stub = env.CURATOR.get(
+      env.CURATOR.idFromName(`prototype:${run}:${opts.ledger ? "ledger" : "plain"}:${opts.batchSize ?? 3}:${opts.only ?? "all"}`)
+    );
     return Response.json(await stub.prototypeRefactor({ repoPrefix: agentRepo(run, ""), ...opts }));
   }
 

@@ -15,12 +15,14 @@ import {
 import { coveringSkill, reusability, sameTask } from "./clef";
 import { Generalizer, type Proposal, type SourceRun } from "./generalize";
 import { fixtureProviders, parseCalls, replay, type CallRecord } from "./verify";
+import { adjudicate, runTests, writeTests, type TestResult } from "./ledger";
 import {
   groupBySimilarity,
   loadFinalPrograms,
   proposeRefactor,
   verifyRefactor,
   type BatchReport,
+  type LedgerRow,
   type Program
 } from "./refactor";
 
@@ -135,6 +137,11 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
    */
   protected liveConnectors(): CodemodeConnector[] {
     return [];
+  }
+
+  /** Authoritative text that disputed rules are decided against (the semantics ledger). */
+  protected async referenceDocs(): Promise<string> {
+    return "";
   }
 
   constructor(ctx: DurableObjectState, env: E) {
@@ -261,31 +268,73 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
    * Prototype (read-only): ReGAL-style refactoring of agents' answer-producing
    * programs into shared helpers. Publishes nothing and writes no state.
    */
-  async prototypeRefactor(opts: { repoPrefix: string; threshold?: number; batchSize?: number; only?: number }) {
+  async prototypeRefactor(opts: {
+    repoPrefix: string;
+    threshold?: number;
+    batchSize?: number;
+    only?: number;
+    /** Decide conflicts against referenceDocs() and test helpers against the decisions. */
+    ledger?: boolean;
+  }) {
     const programs = await loadFinalPrograms(this.env.ARTIFACTS, opts.repoPrefix);
     const vectors = [];
     for (const p of programs) vectors.push(await this.#embed(`${p.question}\n${p.code}`));
-    const groups = groupBySimilarity(programs, vectors, opts.threshold ?? 0.75, opts.batchSize ?? 5).filter(
+    const groups = groupBySimilarity(programs, vectors, opts.threshold ?? 0.75, opts.batchSize ?? 3).filter(
       (g) => g.length >= 2
     );
     const providers = (p: Program) => this.#providers(p.calls);
-    const reports: (BatchReport & { rounds: number })[] = [];
+    const reference = opts.ledger ? await this.referenceDocs() : "";
+    type Report = BatchReport & {
+      rounds: number;
+      ledger?: LedgerRow[];
+      tests?: TestResult[];
+      kept?: string[];
+    };
+    const reports: Report[] = [];
     // `only`: process a single batch (callers fan batches out in parallel).
     for (const batch of opts.only === undefined ? groups : groups.slice(opts.only, opts.only + 1)) {
       try {
-        let proposal = await proposeRefactor(this.env.AI, batch);
-        let report = await verifyRefactor(this.#executor, providers, batch, proposal);
-        let rounds = 1;
-        const failed = report.results.filter((r) => !r.ok);
-        if (failed.length) {
+        let rounds = 0;
+        let ledger: LedgerRow[] = [];
+        // Propose, verify, and repair once on failure.
+        const attempt = async () => {
+          let proposal = await proposeRefactor(this.env.AI, batch, undefined, ledger);
+          let report = await verifyRefactor(this.#executor, providers, batch, proposal, ledger);
           rounds++;
-          const feedback = `Your previous answer was:\n${JSON.stringify(proposal)}\n\nThese rewrites did not reproduce their program's original result:\n${failed
-            .map((r) => `- program ${r.program}: ${r.error}`)
-            .join("\n")}\n\nFix the helpers or rewrites. Reply with the full JSON again.`;
-          proposal = await proposeRefactor(this.env.AI, batch, feedback);
-          report = await verifyRefactor(this.#executor, providers, batch, proposal);
+          const failed = report.results.filter((r) => !r.ok && !r.excluded);
+          if (failed.length) {
+            rounds++;
+            const feedback = `Your previous answer was:\n${JSON.stringify(proposal)}\n\nThese rewrites did not reproduce their program's original result:\n${failed
+              .map((r) => `- program ${r.program}: ${r.error}`)
+              .join("\n")}\n\nFix the helpers or rewrites. Reply with the full JSON again.`;
+            proposal = await proposeRefactor(this.env.AI, batch, feedback, ledger);
+            report = await verifyRefactor(this.#executor, providers, batch, proposal, ledger);
+          }
+          return { proposal, report };
+        };
+
+        let { proposal, report } = await attempt();
+        let tests: TestResult[] | undefined;
+        if (opts.ledger) {
+          // Decide what the programs disagreed about, then refactor again under those decisions.
+          if (report.conflicts.length) {
+            ledger = await adjudicate(this.env.AI, reference, report.conflicts);
+            ({ proposal, report } = await attempt());
+          }
+          const base = this.#providers(batch.flatMap((p) => p.calls));
+          tests = await runTests(
+            this.#executor,
+            base,
+            proposal.helpers,
+            await writeTests(this.env.AI, reference, ledger, proposal.helpers)
+          );
         }
-        reports.push({ ...report, rounds });
+        // Keep a helper when >=2 verified programs use it and (with a ledger) its tests pass.
+        const kept = report.helpers
+          .filter((h) => h.passedBy.length >= 2)
+          .filter((h) => !tests || tests.filter((t) => t.helper === h.name).every((t) => t.ok))
+          .map((h) => h.name);
+        reports.push({ ...report, rounds, ledger, tests, kept });
       } catch (err) {
         reports.push({
           programs: batch.map((p) => ({ repo: p.repo, question: p.question })),

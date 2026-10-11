@@ -23,14 +23,18 @@ export type Program = {
 
 export type Helper = { name: string; description: string; inputSchema?: unknown; code: string };
 
-export type Conflict = { about: string; variants: string[]; programs: number[] };
+/** A rule the programs interpret differently, with which programs take which reading. */
+export type Conflict = { about: string; variants: { description: string; programs: number[] }[] };
+
+/** A decided interpretation (see ledger.ts). Programs on the losing side are not reproduced. */
+export type LedgerRow = { id: string; about: string; decision: string; citation: string; losers: number[] };
 
 export type RefactorProposal = { helpers: Helper[]; rewrites: string[]; conflicts: Conflict[] };
 
 export type BatchReport = {
   programs: { repo: string; question: string }[];
   helpers: (Helper & { usedBy: number[]; passedBy: number[] })[];
-  results: { program: number; ok: boolean; usesHelpers: string[]; error?: string }[];
+  results: { program: number; ok: boolean; usesHelpers: string[]; error?: string; excluded?: string }[];
   conflicts: Conflict[];
   /** Characters of code before vs after (original programs, vs rewrites + helpers that were kept). */
   size: { before: number; after: number };
@@ -115,11 +119,12 @@ Each program is an async arrow function that calls connector globals (e.g. data.
 Produce:
 1. helpers: small, single-purpose functions that capture computations the programs share (e.g. "monthly fraud rate for a merchant", "fee rules matching a transaction profile", "fee for one transaction"). Each is \`async (input) => { ... }\` taking ONE input object; it may call connector globals and other helpers via \`await codemode.run("helper-name", input)\`. Name helpers as kebab-case verbs.
 2. rewrites: for EVERY program, in order, a rewritten version that calls the helpers via \`await codemode.run(name, input)\` and returns EXACTLY the same value as the original. Keep program-specific logic in the rewrite.
-3. conflicts: where programs compute the "same" thing differently (e.g. one treats an empty list as "matches anything" and another does not, or they bucket a value differently), do NOT add an option or flag to a helper to reproduce both. Instead, keep that step inside the rewrites (or make the helper cover only the part they agree on) and list the disagreement: {"about": "<the rule in question>", "variants": ["<variant A>", "<variant B>"], "programs": [<0-based program indices>]}.
+3. conflicts: where programs compute the "same" thing differently (e.g. one treats an empty list as "matches anything" and another does not, or they bucket a value differently), do NOT add an option or flag to a helper to reproduce both. Instead, keep that step inside the rewrites (or make the helper cover only the part they agree on) and list the disagreement: {"about": "<the rule in question>", "variants": [{"description": "<reading A>", "programs": [<0-based indices>]}, {"description": "<reading B>", "programs": [...]}]}.
 
 Rules:
 - Helpers must not have flags that switch between different semantics. Parameters are for values (merchant, month, ids), not behaviours.
 - Prefer few, reusable helpers. A helper used by only one program is usually not worth it.
+- Every helper must do real work: at least one connector call or a multi-step computation. No one-line wrappers (e.g. rounding a number).
 - Deterministic code only. No fetch, no Date.now(), no Math.random().
 - Await connector calls one at a time.
 
@@ -135,10 +140,27 @@ function describe(batch: Program[]): string {
     .join("\n\n");
 }
 
-export async function proposeRefactor(ai: Ai, batch: Program[], feedback?: string): Promise<RefactorProposal> {
+function ledgerText(ledger: LedgerRow[]): string {
+  if (!ledger.length) return "";
+  const losers = [...new Set(ledger.flatMap((r) => r.losers))];
+  return `\n\n## Decided semantics (helpers and rewrites MUST follow these)\n${ledger
+    .map((r) => `- ${r.id}: ${r.decision} (manual: "${r.citation}")`)
+    .join("\n")}${
+    losers.length
+      ? `\nPrograms ${losers.join(", ")} contradict a decision. Rewrite them to follow the decided semantics; they will NOT be checked against their old result.`
+      : ""
+  }`;
+}
+
+export async function proposeRefactor(
+  ai: Ai,
+  batch: Program[],
+  feedback?: string,
+  ledger: LedgerRow[] = []
+): Promise<RefactorProposal> {
   const messages = [
     { role: "system", content: SYSTEM },
-    { role: "user", content: describe(batch) + (feedback ? `\n\n${feedback}` : "") }
+    { role: "user", content: describe(batch) + ledgerText(ledger) + (feedback ? `\n\n${feedback}` : "") }
   ];
   const out = (await runAi(ai, CODE_MODEL, { messages, max_completion_tokens: 16000 })) as {
     choices?: { message?: { content?: string | null; reasoning_content?: string } }[];
@@ -166,6 +188,12 @@ export function withHelpers(executor: Executor, base: ResolvedProvider[], helper
     {
       name: "codemode",
       fns: {
+        // Programs sometimes look helpers up before calling them.
+        describe: async (...args: unknown[]) => {
+          const helper = byName.get(String(args[0]));
+          return helper ? { path: helper.name, description: helper.description, types: helper.inputSchema } : null;
+        },
+        search: async () => ({ results: helpers.map((h) => ({ path: h.name, kind: "snippet" })), total: helpers.length }),
         run: async (...args: unknown[]) => {
           const helper = byName.get(String(args[0]));
           if (!helper) throw new Error(`no helper "${String(args[0])}"`);
@@ -184,12 +212,19 @@ export async function verifyRefactor(
   executor: Executor,
   baseProviders: (p: Program) => ResolvedProvider[],
   batch: Program[],
-  proposal: RefactorProposal
+  proposal: RefactorProposal,
+  ledger: LedgerRow[] = []
 ): Promise<BatchReport> {
   const results: BatchReport["results"] = [];
   for (const [i, program] of batch.entries()) {
     const rewrite = proposal.rewrites[i] ?? "";
     const usesHelpers = proposal.helpers.filter((h) => rewrite.includes(h.name)).map((h) => h.name);
+    const contradicts = ledger.filter((r) => r.losers.includes(i)).map((r) => r.id);
+    if (contradicts.length) {
+      // Its original result follows a rejected reading; nothing to reproduce.
+      results.push({ program: i, ok: false, usesHelpers, excluded: `contradicts ${contradicts.join(", ")}` });
+      continue;
+    }
     const out = await executor.execute(
       `async () => await (${normalizeCode(rewrite)})()`,
       withHelpers(executor, baseProviders(program), proposal.helpers)

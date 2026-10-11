@@ -15,6 +15,14 @@ import {
 import { coveringSkill, reusability, sameTask } from "./clef";
 import { Generalizer, type Proposal, type SourceRun } from "./generalize";
 import { fixtureProviders, parseCalls, replay, type CallRecord } from "./verify";
+import {
+  groupBySimilarity,
+  loadFinalPrograms,
+  proposeRefactor,
+  verifyRefactor,
+  type BatchReport,
+  type Program
+} from "./refactor";
 
 /** What the curator itself needs. Hosts add their own bindings on top. */
 export type Env = {
@@ -247,6 +255,50 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
         .toArray()
         .map((a) => ({ ...a, repos: JSON.parse(a.repos) as string[] }))
     };
+  }
+
+  /**
+   * Prototype (read-only): ReGAL-style refactoring of agents' answer-producing
+   * programs into shared helpers. Publishes nothing and writes no state.
+   */
+  async prototypeRefactor(opts: { repoPrefix: string; threshold?: number; batchSize?: number; only?: number }) {
+    const programs = await loadFinalPrograms(this.env.ARTIFACTS, opts.repoPrefix);
+    const vectors = [];
+    for (const p of programs) vectors.push(await this.#embed(`${p.question}\n${p.code}`));
+    const groups = groupBySimilarity(programs, vectors, opts.threshold ?? 0.75, opts.batchSize ?? 5).filter(
+      (g) => g.length >= 2
+    );
+    const providers = (p: Program) => this.#providers(p.calls);
+    const reports: (BatchReport & { rounds: number })[] = [];
+    // `only`: process a single batch (callers fan batches out in parallel).
+    for (const batch of opts.only === undefined ? groups : groups.slice(opts.only, opts.only + 1)) {
+      try {
+        let proposal = await proposeRefactor(this.env.AI, batch);
+        let report = await verifyRefactor(this.#executor, providers, batch, proposal);
+        let rounds = 1;
+        const failed = report.results.filter((r) => !r.ok);
+        if (failed.length) {
+          rounds++;
+          const feedback = `Your previous answer was:\n${JSON.stringify(proposal)}\n\nThese rewrites did not reproduce their program's original result:\n${failed
+            .map((r) => `- program ${r.program}: ${r.error}`)
+            .join("\n")}\n\nFix the helpers or rewrites. Reply with the full JSON again.`;
+          proposal = await proposeRefactor(this.env.AI, batch, feedback);
+          report = await verifyRefactor(this.#executor, providers, batch, proposal);
+        }
+        reports.push({ ...report, rounds });
+      } catch (err) {
+        reports.push({
+          programs: batch.map((p) => ({ repo: p.repo, question: p.question })),
+          helpers: [],
+          results: [],
+          conflicts: [],
+          size: { before: 0, after: 0 },
+          rounds: 0,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+    return { programs: programs.length, groups: groups.map((g) => g.length), reports };
   }
 
   // ---- ingest -------------------------------------------------------------

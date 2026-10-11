@@ -42,6 +42,16 @@ async function route(request: Request, env: FullEnv): Promise<Response> {
     return Response.json(await env.SOLVER.get(id).solve(req));
   }
 
+  // Prototype (read-only): refactor a run's answer-producing programs into
+  // shared helpers. Separate curator instance; publishes nothing.
+  const proto = /^\/prototype\/refactor\/([a-z0-9-]+)$/.exec(url.pathname);
+  if (proto && request.method === "POST") {
+    const run = proto[1]!;
+    const opts = (await request.json().catch(() => ({}))) as { threshold?: number; batchSize?: number; only?: number };
+    const stub = env.CURATOR.get(env.CURATOR.idFromName(`prototype:${run}:${opts.only ?? "all"}`));
+    return Response.json(await stub.prototypeRefactor({ repoPrefix: agentRepo(run, ""), ...opts }));
+  }
+
   // Curator for a run: POST /curate/<run>/backfill, GET /curate/<run>/status
   const match = /^\/curate\/([a-z0-9-]+)\/(backfill|status)$/.exec(url.pathname);
   if (match) {

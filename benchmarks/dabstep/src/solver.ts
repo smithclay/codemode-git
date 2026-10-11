@@ -276,11 +276,26 @@ export class Solver extends DurableObject<Env> {
       const turn = await chat(this.env.AI, model, messages);
       result.tokens.input += turn.input;
       result.tokens.output += turn.output;
-      messages.push({ role: "assistant", content: turn.text, ...(turn.toolCalls.length ? { tool_calls: turn.toolCalls } : {}) });
+      // Echo tool calls back with valid JSON arguments: the API rejects the
+      // whole conversation if a model emitted malformed arguments earlier.
+      const toolCalls = turn.toolCalls.map((c) => ({
+        ...c,
+        function: { ...c.function, arguments: JSON.stringify(parseArgs(c.function.arguments)) }
+      }));
+      messages.push({ role: "assistant", content: turn.text, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) });
 
       const actions = actionsFrom(turn.text, turn.toolCalls);
+      // Every tool call needs a tool reply; tell the model about ones we couldn't use.
+      const answered = new Set(actions.map((a) => a.callId).filter(Boolean));
+      for (const c of toolCalls) {
+        if (!answered.has(c.id)) {
+          reply(c.id, 'Invalid arguments. Call codemode with {"code": "<async arrow function>"} or final_answer with {"answer": "..."}.');
+        }
+      }
       if (!actions.length) {
-        messages.push({ role: "user", content: "Call the codemode tool to run code, or final_answer when you are confident." });
+        if (!toolCalls.length) {
+          messages.push({ role: "user", content: "Call the codemode tool to run code, or final_answer when you are confident." });
+        }
         continue;
       }
       for (const action of actions) {

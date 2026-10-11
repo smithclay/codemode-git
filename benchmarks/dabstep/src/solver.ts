@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { createCodemodeRuntime, DynamicWorkerExecutor, type CodemodeConnector } from "@cloudflare/codemode";
-import { ArtifactsSink, GitHistoryConnector, syncSkills, TRAILERS } from "codemode-git";
+import { ArtifactsSink, GitHistoryConnector, syncSkills, toFinalCommit, TRAILERS } from "codemode-git";
 import { runAi } from "codemode-git-curator/ai";
 import { DabstepConnector, SCHEMA } from "./connector";
 
@@ -127,9 +127,12 @@ async function chat(ai: Ai, model: string, messages: ChatMessage[]) {
   };
 }
 
-function parseArgs(raw: string): Record<string, string> {
+function parseArgs(raw: unknown): Record<string, string> {
+  // Some models' tool-call arguments arrive already parsed.
+  if (raw && typeof raw === "object") return raw as Record<string, string>;
   try {
-    return JSON.parse(raw) as Record<string, string>;
+    const parsed = JSON.parse(String(raw)) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
   } catch {
     return {};
   }
@@ -162,7 +165,8 @@ function actionsFrom(text: string, toolCalls: ToolCall[]): Action[] {
 }
 
 function clip(value: unknown): string {
-  const text = typeof value === "string" ? value : JSON.stringify(value);
+  // JSON.stringify(undefined) is undefined: code that returns nothing.
+  const text = typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
   return text.length > MAX_FEEDBACK_CHARS ? `${text.slice(0, MAX_FEEDBACK_CHARS)}… (truncated, ${text.length} chars)` : text;
 }
 
@@ -175,10 +179,12 @@ export class Solver extends DurableObject<Env> {
 
     const connectors: CodemodeConnector[] = [new DabstepConnector(this.ctx, this.env)];
     let history: GitHistoryConnector | undefined;
+    let sink: ArtifactsSink | undefined;
     let skillsRef: string | null = null;
     if (arm === "codemode-git") {
+      sink = new ArtifactsSink({ artifacts: this.env.ARTIFACTS, repo: agentRepo(run, task.task_id) });
       history = new GitHistoryConnector(this.ctx, this.env, {
-        sink: new ArtifactsSink({ artifacts: this.env.ARTIFACTS, repo: agentRepo(run, task.task_id) }),
+        sink,
         describe: () => `t${task.task_id}: ${task.question}`.slice(0, 200),
         extraTrailers: (): Record<string, string> => (skillsRef ? { [TRAILERS.skillsRef]: skillsRef } : {})
       });
@@ -235,6 +241,9 @@ export class Solver extends DurableObject<Env> {
       transcript: []
     };
 
+    // The execution whose result the final answer was based on: the last one that completed.
+    let lastCompleted: string | undefined;
+
     /** Reply to a tool call if there was one, else as a user turn. */
     const reply = (callId: string | undefined, content: string) =>
       messages.push(callId ? { role: "tool", tool_call_id: callId, content } : { role: "user", content });
@@ -270,6 +279,7 @@ export class Solver extends DurableObject<Env> {
         }
         const outcome = await runtime.execute({ code: action.code });
         if (outcome.status === "completed") {
+          lastCompleted = outcome.executionId;
           const logs = outcome.logs?.length ? `\nLogs:\n${clip(outcome.logs.join("\n"))}` : "";
           reply(action.callId, `Result:\n${clip(outcome.result)}${logs}`);
         } else {
@@ -280,8 +290,17 @@ export class Solver extends DurableObject<Env> {
     }
 
     if (!result.answer) result.answer = "Not Applicable";
-    // Make sure every run is pushed before reporting, so the curator sees it.
+    // Make sure every run is pushed before reporting, so the curator sees it,
+    // then mark which run the answer came from.
     await history?.flush();
+    const finalSha = lastCompleted && history?.commits(200).find((c) => c.execution_id === lastCompleted && c.sha)?.sha;
+    if (sink && finalSha && result.answer !== "Not Applicable") {
+      await sink.commit(
+        toFinalCommit(finalSha, `Answer t${task.task_id}: ${result.answer}`.slice(0, 200), {
+          "answer.json": `${JSON.stringify({ task_id: task.task_id, question: task.question, answer: result.answer, run: finalSha }, null, 2)}\n`
+        })
+      );
+    }
     result.ms = Date.now() - started;
     result.transcript = messages.slice(1).map((m) => ({
       role: m.role,

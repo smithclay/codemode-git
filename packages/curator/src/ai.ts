@@ -1,5 +1,5 @@
 /** Workers AI with retry on rate limits (3021) and transient errors. */
-export async function runAi(ai: Ai, model: string, input: unknown, attempts = 6): Promise<unknown> {
+export async function runAi(ai: Ai, model: string, input: unknown, attempts = 10): Promise<unknown> {
   for (let i = 0; ; i++) {
     try {
       return await (ai.run as (m: string, i: unknown) => Promise<unknown>)(model, input);

@@ -15,7 +15,9 @@ export const TRAILERS = {
   status: "Codemode-Status",
   connectors: "Codemode-Connectors",
   snippets: "Codemode-Snippets",
-  skillsRef: "Codemode-Skills-Ref"
+  skillsRef: "Codemode-Skills-Ref",
+  /** On a marker commit: the sha of the run that produced the agent's final result. */
+  final: "Codemode-Final"
 } as const;
 
 export type CommitContent = {
@@ -72,6 +74,19 @@ export function toCommit(
   };
 
   return { message, files, timestamp: exec.updatedAt };
+}
+
+/**
+ * A marker commit saying which earlier run produced the agent's final result,
+ * e.g. the answer to its task. Lets a curator learn from solutions rather than
+ * from every exploratory step.
+ */
+export function toFinalCommit(runSha: string, title: string, files: Record<string, string>): CommitContent {
+  return {
+    message: `${title.split("\n")[0]}\n\n${TRAILERS.final}: ${runSha}`,
+    files,
+    timestamp: Date.now()
+  };
 }
 
 export function parseTrailers(message: string): Record<string, string> {

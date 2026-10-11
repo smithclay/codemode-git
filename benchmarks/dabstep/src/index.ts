@@ -50,7 +50,12 @@ export default {
       const [, run, action] = match as unknown as [string, string, string];
       if (!RUN_ID.test(run)) return new Response("bad run id", { status: 400 });
       const stub = curator(env, run);
-      await stub.configure({ repoPrefix: agentRepo(run, ""), skillsRepo: skillsRepo(run) });
+      // Learn from the run each agent answered with, and promote once two
+      // independent agents converge on the same computation.
+      await stub.configure(
+        { repoPrefix: agentRepo(run, ""), skillsRepo: skillsRepo(run) },
+        { finalRunsOnly: true, minRepos: 2 }
+      );
       if (action === "backfill" && request.method === "POST") return Response.json(await stub.backfill());
       if (action === "status") return Response.json(await stub.status());
     }

@@ -7,6 +7,7 @@ export {
   parseTrailers,
   snippetsUsed,
   toCommit,
+  toFinalCommit,
   type CommitContent
 } from "./format";
 export { MemoryFS } from "./memory-fs";

@@ -12,6 +12,11 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { Agent, setGlobalDispatcher } from "undici";
+
+// A hard task can run for many minutes before the worker responds; Node's
+// default fetch gives up waiting for headers after 5.
+setGlobalDispatcher(new Agent({ headersTimeout: 0, bodyTimeout: 0 }));
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { values: opts } = parseArgs({
@@ -68,7 +73,9 @@ console.log(`${opts.run}/${opts.arm}: ${tasks.length} tasks, waves of ${size}, m
 for (let i = 0; i < tasks.length; i += size) {
   const wave = tasks.slice(i, i + size);
   const results = await Promise.all(
-    wave.map(async (task) => {
+    wave.map(async (task, j) => {
+      // Stagger launches a little to smooth Workers AI rate limits.
+      await new Promise((r) => setTimeout(r, j * 2000));
       try {
         return await solve(task);
       } catch (err) {

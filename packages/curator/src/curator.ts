@@ -25,12 +25,20 @@ export type Env = {
 
 /** Which repos a curator watches and where it publishes. One curator, one scope. */
 export type CuratorScope = { repoPrefix: string; skillsRepo: string };
+export type CuratorPolicy = typeof POLICY;
 export const DEFAULT_SCOPE: CuratorScope = { repoPrefix: "agent-", skillsRepo: "skills" };
 const EMBEDDING_MODEL = "@cf/qwen/qwen3-embedding-0.6b";
 
-/** Tunables. A cluster needs this many distinct agents before it becomes a skill. */
+/** Tunables. Defaults; a curator can override them with configure(). */
 export const POLICY = {
+  /** A cluster needs this many distinct agents before it becomes a skill. */
   minRepos: 3,
+  /**
+   * Cluster only runs that agents marked as producing their final result
+   * (Codemode-Final marker commits), not every exploratory step. For multi-step
+   * agents, where most runs are scaffolding.
+   */
+  finalRunsOnly: false,
   /** Embedding similarity to make Clef's shortlist. Loose on purpose: Clef makes the call. */
   shortlist: 0.5,
   shortlistSize: 12,
@@ -63,6 +71,7 @@ type RunRow = {
   skill: string | null;
   used_skills: string;
   committed_at: number;
+  final?: number;
 };
 
 type SkillRow = {
@@ -129,6 +138,7 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
         repo TEXT NOT NULL, sha TEXT NOT NULL, intent TEXT NOT NULL, status TEXT NOT NULL,
         code TEXT NOT NULL, calls TEXT NOT NULL, result TEXT NOT NULL, embedding TEXT NOT NULL,
         skill TEXT, used_skills TEXT NOT NULL DEFAULT '[]', committed_at INTEGER NOT NULL,
+        final INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (repo, sha)
       );
       CREATE TABLE IF NOT EXISTS skills (
@@ -146,14 +156,22 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
 
   // ---- entry points -------------------------------------------------------
 
-  /** Set which repos this curator watches and where it publishes. */
-  configure(scope: CuratorScope): CuratorScope {
+  /** Set which repos this curator watches, where it publishes, and policy overrides. */
+  configure(scope: CuratorScope, policy: Partial<CuratorPolicy> = {}): CuratorScope {
     this.ctx.storage.sql.exec(
-      `INSERT OR REPLACE INTO config (key, value) VALUES ('scope', ?)`,
-      JSON.stringify(scope)
+      `INSERT OR REPLACE INTO config (key, value) VALUES ('scope', ?), ('policy', ?)`,
+      JSON.stringify(scope),
+      JSON.stringify(policy)
     );
     this.#sink = undefined;
     return scope;
+  }
+
+  #policy(): CuratorPolicy {
+    const row = this.ctx.storage.sql
+      .exec<{ value: string }>(`SELECT value FROM config WHERE key = 'policy'`)
+      .toArray()[0];
+    return { ...POLICY, ...(row ? (JSON.parse(row.value) as Partial<CuratorPolicy>) : {}) };
   }
 
   #scope(): CuratorScope {
@@ -239,24 +257,37 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
     for (const event of events) {
       const repo = event.source.repoName;
       if (!this.#inScope(repo)) continue;
-      let runs: RunRow[];
+      let batch: { rows: RunRow[]; finals: string[] };
       try {
-        runs = await this.#newRuns(repo, event.payload);
+        batch = await this.#newRuns(repo, event.payload);
       } catch (err) {
         console.error(`curator: could not read ${repo}`, err);
         continue;
       }
-      for (const run of runs) {
+      const policy = this.#policy();
+      for (const run of batch.rows) {
         ingested++;
-        const skill = await this.#consider(run);
+        this.#countUses(run);
+        if (policy.finalRunsOnly) continue;
+        const skill = await this.#consider(run, policy);
         if (skill) published.push(skill);
+      }
+      if (policy.finalRunsOnly) {
+        for (const sha of batch.finals) {
+          const run = this.ctx.storage.sql
+            .exec<RunRow>(`SELECT * FROM runs WHERE repo = ? AND sha = ?`, repo, sha)
+            .toArray()[0];
+          if (!run) continue;
+          const skill = await this.#consider(run, policy);
+          if (skill) published.push(skill);
+        }
       }
     }
     return { ingested, published };
   }
 
   /** Commits between `before` and `after`, oldest first, that we haven't seen. */
-  async #newRuns(repoName: string, push: PushedEvent["payload"]): Promise<RunRow[]> {
+  async #newRuns(repoName: string, push: PushedEvent["payload"]): Promise<{ rows: RunRow[]; finals: string[] }> {
     const repo = await this.env.ARTIFACTS.get(repoName);
     try {
       const log = await repo.log({ ref: push.after, limit: 200 });
@@ -266,12 +297,21 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
         commits.push(commit);
       }
       const rows: RunRow[] = [];
+      const finals: string[] = [];
       for (const commit of commits.reverse()) {
+        const trailers = parseTrailers(commit.message);
+        if (trailers[TRAILERS.final]) {
+          // Marker commit: points at the run that produced the agent's result.
+          const prefix = trailers[TRAILERS.final]!;
+          const target = [...rows].reverse().find((r) => r.sha.startsWith(prefix))?.sha ?? prefix;
+          this.ctx.storage.sql.exec(`UPDATE runs SET final = 1 WHERE repo = ? AND sha = ?`, repoName, target);
+          finals.push(target);
+          continue;
+        }
         const seen = this.ctx.storage.sql
           .exec(`SELECT 1 FROM runs WHERE repo = ? AND sha = ?`, repoName, commit.hash)
           .toArray().length;
         if (seen) continue;
-        const trailers = parseTrailers(commit.message);
         const status = trailers[TRAILERS.status];
         if (!status) continue; // not a Code Mode run
         const [code, calls, result] = await Promise.all(
@@ -289,7 +329,7 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
           code: code!,
           calls: calls!,
           result: JSON.stringify((JSON.parse(result || "{}") as { result?: unknown }).result ?? null),
-          embedding: status === "completed" ? JSON.stringify(await this.#embed(`${intent}\n${code}`)) : "[]",
+          embedding: "[]", // computed when the run is considered for clustering
           skill: null,
           used_skills: JSON.stringify(snippetsUsed(code!)),
           committed_at: commit.committedAt * 1000
@@ -302,7 +342,7 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
         );
         rows.push(row);
       }
-      return rows;
+      return { rows, finals };
     } finally {
       repo[Symbol.dispose]();
     }
@@ -318,14 +358,20 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
   // ---- cluster → propose → verify → publish ------------------------------
 
   /** Decide what a new run means for the library. Returns a skill name if one was published. */
-  async #consider(run: RunRow): Promise<string | null> {
-    const sql = this.ctx.storage.sql;
-
+  #countUses(run: RunRow) {
     // Reuse: the run called library skills. That's the metric we want to go up.
     for (const name of JSON.parse(run.used_skills) as string[]) {
-      sql.exec(`UPDATE skills SET uses = uses + 1 WHERE name = ?`, name);
+      this.ctx.storage.sql.exec(`UPDATE skills SET uses = uses + 1 WHERE name = ?`, name);
     }
+  }
+
+  async #consider(run: RunRow, policy: CuratorPolicy): Promise<string | null> {
+    const sql = this.ctx.storage.sql;
     if (run.status !== "completed" || (JSON.parse(run.used_skills) as string[]).length) return null;
+    if (run.embedding === "[]") {
+      run.embedding = JSON.stringify(await this.#embed(`${run.intent}\n${run.code}`));
+      sql.exec(`UPDATE runs SET embedding = ? WHERE repo = ? AND sha = ?`, run.embedding, run.repo, run.sha);
+    }
 
     const vector = JSON.parse(run.embedding) as number[];
     const summary = { intent: run.intent, code: run.code };
@@ -335,12 +381,12 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
       .exec<SkillRow>(`SELECT name, description, code, embedding FROM skills`)
       .toArray()
       .map((s) => ({ ...s, sim: cosine(vector, JSON.parse(s.embedding) as number[]) }))
-      .filter((s) => s.sim >= POLICY.shortlist)
+      .filter((s) => s.sim >= policy.shortlist)
       .sort((a, b) => b.sim - a.sim)
       .slice(0, 8);
     if (skillShortlist.length) {
       const covering = await coveringSkill(this.env.AI, summary, skillShortlist);
-      if (covering.name && covering.probability >= POLICY.decide) {
+      if (covering.name && covering.probability >= policy.decide) {
         sql.exec(`UPDATE runs SET skill = ? WHERE repo = ? AND sha = ?`, covering.name, run.repo, run.sha);
         return null;
       }
@@ -350,19 +396,23 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
     // embedding, then let Clef decide which really are the same task.
     const bestPerRepo = new Map<string, { row: RunRow; sim: number }>();
     for (const other of sql
-      .exec<RunRow>(`SELECT * FROM runs WHERE status = 'completed' AND skill IS NULL AND repo != ?`, run.repo)
+      .exec<RunRow>(
+        `SELECT * FROM runs WHERE status = 'completed' AND skill IS NULL AND embedding != '[]' AND repo != ?
+         ${policy.finalRunsOnly ? "AND final = 1" : ""}`,
+        run.repo
+      )
       .toArray()) {
       if ((JSON.parse(other.used_skills) as string[]).length) continue;
       const sim = cosine(vector, JSON.parse(other.embedding) as number[]);
-      if (sim < POLICY.shortlist) continue;
+      if (sim < policy.shortlist) continue;
       const best = bestPerRepo.get(other.repo);
       if (!best || sim > best.sim) bestPerRepo.set(other.repo, { row: other, sim });
     }
     const shortlist = [...bestPerRepo.values()]
       .sort((a, b) => b.sim - a.sim)
-      .slice(0, POLICY.shortlistSize)
+      .slice(0, policy.shortlistSize)
       .map((n) => n.row);
-    if (shortlist.length + 1 < POLICY.minRepos) return null;
+    if (shortlist.length + 1 < policy.minRepos) return null;
 
     const probabilities = await sameTask(
       this.env.AI,
@@ -372,12 +422,12 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
     // Rank members by Clef's confidence that they're the same task.
     const neighbors = shortlist
       .map((row, i) => ({ row, p: probabilities[i]! }))
-      .filter((n) => n.p >= POLICY.decide)
+      .filter((n) => n.p >= policy.decide)
       .sort((a, b) => b.p - a.p)
       .map((n) => n.row);
-    if (neighbors.length + 1 < POLICY.minRepos) return null;
+    if (neighbors.length + 1 < policy.minRepos) return null;
 
-    const cluster = [run, ...neighbors].slice(0, POLICY.maxClusterSize);
+    const cluster = [run, ...neighbors].slice(0, policy.maxClusterSize);
     return this.#propose(cluster);
   }
 
@@ -395,14 +445,15 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
       };
     });
     const repos = runs.map((r) => r.repo);
+    const policy = this.#policy();
     // The same set of source runs is only ever tried once; new evidence makes a new cluster.
     const key = runs.map((r) => r.sha).sort().join(",");
     if (this.ctx.storage.sql.exec(`SELECT 1 FROM attempts WHERE cluster = ?`, key).toArray().length) return null;
 
     // Rank: is this task worth a shared skill at all?
     const score = await reusability(this.env.AI, runs);
-    if (score < POLICY.minReusability) {
-      this.#record(key, repos, "rejected", null, `reusability ${score.toFixed(2)} below ${POLICY.minReusability}`);
+    if (score < policy.minReusability) {
+      this.#record(key, repos, "rejected", null, `reusability ${score.toFixed(2)} below ${policy.minReusability}`);
       return null;
     }
     const generalizer = new Generalizer(this.env.AI, runs);
@@ -411,17 +462,17 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
     let failures: string[] = [];
     let rounds = 0;
     try {
-      for (let attempt = 0; attempt <= POLICY.repairAttempts; attempt++) {
+      for (let attempt = 0; attempt <= policy.repairAttempts; attempt++) {
         rounds++;
         proposal = attempt === 0 ? await generalizer.propose() : await generalizer.repair(failures);
         failures = await this.#verify(proposal, runs);
-        if (failures.length <= runs.length * (1 - POLICY.minPassRate)) break;
+        if (failures.length <= runs.length * (1 - policy.minPassRate)) break;
       }
     } catch (err) {
       this.#record(key, repos, "error", proposal?.name ?? null, err instanceof Error ? err.message : String(err));
       return null;
     }
-    if (!proposal || failures.length > runs.length * (1 - POLICY.minPassRate)) {
+    if (!proposal || failures.length > runs.length * (1 - policy.minPassRate)) {
       this.#record(key, repos, "rejected", proposal?.name ?? null, `after ${rounds} round(s):\n${failures.join("\n")}`);
       return null;
     }

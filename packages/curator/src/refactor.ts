@@ -27,7 +27,16 @@ export type Helper = { name: string; description: string; inputSchema?: unknown;
 export type Conflict = { about: string; variants: { description: string; programs: number[] }[] };
 
 /** A decided interpretation (see ledger.ts). Programs on the losing side are not reproduced. */
-export type LedgerRow = { id: string; about: string; decision: string; citation: string; losers: number[] };
+export type LedgerRow = {
+  id: string;
+  about: string;
+  decision: string;
+  citation: string;
+  /** Programs on a losing variant. Only enforced when the decision cites the reference. */
+  losers: number[];
+  /** "cited": backed by a quote from the reference. "majority": the reference was silent. */
+  basis: "cited" | "majority";
+};
 
 export type RefactorProposal = { helpers: Helper[]; rewrites: string[]; conflicts: Conflict[] };
 
@@ -142,7 +151,7 @@ function describe(batch: Program[]): string {
 
 function ledgerText(ledger: LedgerRow[]): string {
   if (!ledger.length) return "";
-  const losers = [...new Set(ledger.flatMap((r) => r.losers))];
+  const losers = [...new Set(ledger.filter((r) => r.basis === "cited").flatMap((r) => r.losers))];
   return `\n\n## Decided semantics (helpers and rewrites MUST follow these)\n${ledger
     .map((r) => `- ${r.id}: ${r.decision} (manual: "${r.citation}")`)
     .join("\n")}${
@@ -177,6 +186,15 @@ export async function proposeRefactor(
   return proposal;
 }
 
+/** Executors may throw on code that fails to parse; treat that as a failed run, not a crashed batch. */
+export async function safeExecute(executor: Executor, code: string, providers: ResolvedProvider[]) {
+  try {
+    return await executor.execute(code, providers);
+  } catch (err) {
+    return { result: undefined, error: err instanceof Error ? err.message.split("\n").slice(0, 2).join(" ") : String(err) };
+  }
+}
+
 const wrap = (code: string, input: unknown) =>
   `async () => {\n  const fn = (${normalizeCode(code)});\n  return await fn(${JSON.stringify(input ?? null)});\n}`;
 
@@ -197,7 +215,7 @@ export function withHelpers(executor: Executor, base: ResolvedProvider[], helper
         run: async (...args: unknown[]) => {
           const helper = byName.get(String(args[0]));
           if (!helper) throw new Error(`no helper "${String(args[0])}"`);
-          const out = await executor.execute(wrap(helper.code, args[1]), providers);
+          const out = await safeExecute(executor, wrap(helper.code, args[1]), providers);
           if (out.error) throw new Error(`${helper.name}: ${out.error}`);
           return out.result;
         }
@@ -219,13 +237,14 @@ export async function verifyRefactor(
   for (const [i, program] of batch.entries()) {
     const rewrite = proposal.rewrites[i] ?? "";
     const usesHelpers = proposal.helpers.filter((h) => rewrite.includes(h.name)).map((h) => h.name);
-    const contradicts = ledger.filter((r) => r.losers.includes(i)).map((r) => r.id);
+    const contradicts = ledger.filter((r) => r.basis === "cited" && r.losers.includes(i)).map((r) => r.id);
     if (contradicts.length) {
       // Its original result follows a rejected reading; nothing to reproduce.
       results.push({ program: i, ok: false, usesHelpers, excluded: `contradicts ${contradicts.join(", ")}` });
       continue;
     }
-    const out = await executor.execute(
+    const out = await safeExecute(
+      executor,
       `async () => await (${normalizeCode(rewrite)})()`,
       withHelpers(executor, baseProviders(program), proposal.helpers)
     );

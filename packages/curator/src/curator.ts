@@ -321,12 +321,11 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
             ledger = await adjudicate(this.env.AI, reference, report.conflicts);
             ({ proposal, report } = await attempt());
           }
-          const base = this.#providers(batch.flatMap((p) => p.calls));
           tests = await runTests(
             this.#executor,
-            base,
+            await this.#liveProviders(),
             proposal.helpers,
-            await writeTests(this.env.AI, reference, ledger, proposal.helpers)
+            await writeTests(this.env.AI, reference, ledger, proposal.helpers, await this.#liveSchema())
           );
         }
         // Keep a helper when >=2 verified programs use it and (with a ledger) its tests pass.
@@ -678,6 +677,34 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
     sql.exec(`UPDATE skills SET commit_sha = ? WHERE name = ?`, sha, name);
     this.#record(key, runs.map((r) => r.repo), "published", name, `verified ${passed}/${runs.length} after ${rounds} round(s), commit ${sha}`);
     return name;
+  }
+
+  /** Every method of every live connector, regardless of what recordings contain (for tests). */
+  async #liveProviders(): Promise<ResolvedProvider[]> {
+    const providers: ResolvedProvider[] = [];
+    for (const connector of this.liveConnectors()) {
+      const { descriptors } = await connector.describe();
+      providers.push({
+        name: connector.name(),
+        fns: Object.fromEntries(
+          Object.keys(descriptors).map((method) => [
+            method,
+            (...args: unknown[]) => connector.executeTool(method, args[0] ?? {})
+          ])
+        )
+      });
+    }
+    return providers;
+  }
+
+  /** Text describing the live connectors (e.g. a dataset schema), for writing tests. */
+  async #liveSchema(): Promise<string> {
+    const parts = [];
+    for (const connector of this.liveConnectors()) {
+      const d = await connector.describe();
+      if (d.instructions) parts.push(`${d.name}: ${d.instructions}`);
+    }
+    return parts.join("\n");
   }
 
   /** Live providers for connectors registered as live, recorded fixtures for the rest. */

@@ -8,7 +8,7 @@
 import { normalizeCode, type Executor, type ResolvedProvider } from "@cloudflare/codemode";
 import { runAi } from "./ai";
 import { CODE_MODEL } from "./generalize";
-import { withHelpers, type Conflict, type Helper, type LedgerRow } from "./refactor";
+import { safeExecute, withHelpers, type Conflict, type Helper, type LedgerRow } from "./refactor";
 
 type Chat = { choices?: { message?: { content?: string | null; reasoning_content?: string } }[] };
 
@@ -31,6 +31,7 @@ For each conflict:
 - Pick the reading the reference document supports, and quote the exact sentence(s) you rely on (verbatim, short).
 - If the document is silent, pick the reading most programs used and say "majority" as the citation.
 - Write the decision as a precise, testable rule (e.g. "A fee rule field that is null or an empty list matches every value").
+- Skip conflicts that are only about presentation (sort order, number formatting, variable names): omit them from rows.
 
 Reply with JSON only:
 {"rows": [{"conflict": <index>, "variant": <index of the winning variant>, "decision": string, "citation": string}]}`;
@@ -63,7 +64,8 @@ export async function adjudicate(
       about: conflicts[r.conflict]!.about,
       decision: r.decision,
       citation: r.citation,
-      losers: conflicts[r.conflict]!.variants.filter((_, j) => j !== r.variant).flatMap((v) => v.programs)
+      losers: conflicts[r.conflict]!.variants.filter((_, j) => j !== r.variant).flatMap((v) => v.programs),
+      basis: /^\s*majority\s*$/i.test(r.citation) || !r.citation.trim() ? ("majority" as const) : ("cited" as const)
     }));
 }
 
@@ -75,13 +77,19 @@ const WRITE_TESTS = `You write unit tests for helper functions in a shared libra
 A test is an async arrow function returning true if the helper behaves correctly, e.g.
 async () => { const r = await codemode.run("fee-field-matches", { field: "[]", value: "F" }); return r === true; }
 
-Tests may call helpers with codemode.run(name, input) and may query the real dataset with data.sql({ query }) to set up expectations. Prefer small, decisive cases that probe the decided semantics and edge cases from the document (empty lists, nulls, bucket boundaries, date ranges). Write 1-3 tests per helper that has semantics to check; skip helpers that only fetch data.
+Tests may call helpers with codemode.run(name, input) and may query the real dataset with data.sql({ query }) to set up expectations. Only use columns that exist in the dataset schema below. Prefer small, decisive cases that probe the decided semantics and edge cases from the document (empty lists, nulls, bucket boundaries, date ranges). Write 1-3 tests per helper that has semantics to check; skip helpers that only fetch data.
 
 Reply with JSON only: {"tests": [{"helper": string, "name": string, "code": string}]}`;
 
-export async function writeTests(ai: Ai, reference: string, ledger: LedgerRow[], helpers: Helper[]): Promise<HelperTest[]> {
+export async function writeTests(
+  ai: Ai,
+  reference: string,
+  ledger: LedgerRow[],
+  helpers: Helper[],
+  schema = ""
+): Promise<HelperTest[]> {
   if (!helpers.length) return [];
-  const user = `## Reference document\n${reference}\n\n## Decided semantics\n${
+  const user = `## Reference document\n${reference}\n\n## Dataset schema\n${schema || "(not provided)"}\n\n## Decided semantics\n${
     ledger.map((r) => `- ${r.id}: ${r.decision}`).join("\n") || "(none)"
   }\n\n## Helpers\n${helpers
     .map((h) => `### ${h.name}: ${h.description}\ninput schema: ${JSON.stringify(h.inputSchema ?? {})}\n\`\`\`js\n${h.code}\n\`\`\``)
@@ -98,7 +106,8 @@ export async function runTests(
 ): Promise<TestResult[]> {
   const results: TestResult[] = [];
   for (const test of tests) {
-    const out = await executor.execute(
+    const out = await safeExecute(
+      executor,
       `async () => await (${normalizeCode(test.code)})()`,
       withHelpers(executor, base, helpers)
     );

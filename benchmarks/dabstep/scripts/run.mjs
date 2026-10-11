@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Run DABstep tasks through one arm of the benchmark worker.
 //
-//   node scripts/run.mjs --run dev1 --arm codemode-git --model @cf/moonshotai/kimi-k2.7-code \
+//   node scripts/run.mjs --run dev1 --arm codemode-git --model @cf/zai-org/glm-5.3-flash \
 //     --split dev --concurrency 5 [--tasks 5,49] [--limit 25] [--url http://localhost:8790]
 //
 // Tasks go out in waves of --concurrency fresh agents. In the codemode-git arm
@@ -19,7 +19,7 @@ const { values: opts } = parseArgs({
     url: { type: "string", default: "http://localhost:8790" },
     run: { type: "string" },
     arm: { type: "string" },
-    model: { type: "string", default: "@cf/moonshotai/kimi-k2.7-code" },
+    model: { type: "string", default: "@cf/zai-org/glm-5.3-flash" },
     split: { type: "string", default: "dev" },
     tasks: { type: "string" },
     limit: { type: "string" },
@@ -50,10 +50,13 @@ const done = new Set(
 );
 tasks = tasks.filter((t) => !done.has(t.task_id));
 
+// Required by the deployed worker; ignored by local dev.
+const auth = process.env.HARNESS_TOKEN ? { authorization: `Bearer ${process.env.HARNESS_TOKEN}` } : {};
+
 async function solve(task) {
   const res = await fetch(`${opts.url}/solve`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...auth },
     body: JSON.stringify({ run: opts.run, arm: opts.arm, model: opts.model, task, maxSteps: Number(opts["max-steps"]) })
   });
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
@@ -82,7 +85,7 @@ for (let i = 0; i < tasks.length; i += size) {
     );
   }
   if (opts.arm === "codemode-git") {
-    const res = await fetch(`${opts.url}/curate/${opts.run}/backfill`, { method: "POST" });
+    const res = await fetch(`${opts.url}/curate/${opts.run}/backfill`, { method: "POST", headers: auth });
     const c = res.ok ? await res.json() : { error: await res.text() };
     console.log(`  curator: ${JSON.stringify(c)}`);
   }

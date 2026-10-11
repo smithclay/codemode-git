@@ -17,6 +17,8 @@ export default defineConfig({
       ARTIFACTS: bindings.artifacts({ namespace: "codemode-git", dev: { remote: true } }),
       AI: bindings.ai({ dev: { remote: true } }),
       LOADER: bindings.workerLoader(),
+      // HARNESS_TOKEN: set with `cf workers secrets update`. Every non-localhost
+      // request needs it as a bearer token; without it the worker rejects all.
       SOLVER: bindings.durableObject({ worker: "codemode-git-dabstep", exportName: "Solver" }),
       CURATOR: bindings.durableObject({ worker: "codemode-git-dabstep", exportName: "DabstepCurator" })
     }

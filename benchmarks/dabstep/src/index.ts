@@ -15,7 +15,15 @@ export class DabstepCurator extends Curator<Env> {
 type FullEnv = Env & {
   SOLVER: DurableObjectNamespace<Solver>;
   CURATOR: DurableObjectNamespace<DabstepCurator>;
+  HARNESS_TOKEN?: string;
 };
+
+/** Fail closed: anything but local dev needs the harness token. */
+function authorized(request: Request, env: FullEnv): boolean {
+  const { hostname } = new URL(request.url);
+  if (hostname === "localhost" || hostname === "127.0.0.1") return true;
+  return !!env.HARNESS_TOKEN && request.headers.get("authorization") === `Bearer ${env.HARNESS_TOKEN}`;
+}
 
 const RUN_ID = /^[a-z0-9][a-z0-9-]{0,30}$/;
 
@@ -25,6 +33,7 @@ function curator(env: FullEnv, run: string) {
 
 export default {
   async fetch(request, env): Promise<Response> {
+    if (!authorized(request, env)) return new Response("unauthorized", { status: 401 });
     const url = new URL(request.url);
 
     // One task, one fresh agent.

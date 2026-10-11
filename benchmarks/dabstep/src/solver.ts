@@ -16,10 +16,28 @@ export type Arm = "baseline" | "codemode-git";
 
 export type Task = { task_id: string; question: string; guidelines: string; level: string };
 
-export type SolveRequest = { run: string; arm: Arm; task: Task; model: string; maxSteps?: number };
+export type SolveRequest = {
+  run: string;
+  arm: Arm;
+  task: Task;
+  model: string;
+  maxSteps?: number;
+  /** Independent repetition of the same task (0-based). Each gets its own agent and repo. */
+  repeat?: number;
+  /** Retry number after an infrastructure failure (1-based). Each gets its own agent and repo. */
+  attempt?: number;
+};
+
+/** One agent per (task, repeat, attempt): its Durable Object name and repo suffix. */
+export function agentKey(req: Pick<SolveRequest, "task" | "repeat" | "attempt">): string {
+  return `${req.task.task_id}${req.repeat ? `-r${req.repeat}` : ""}${req.attempt && req.attempt > 1 ? `-a${req.attempt}` : ""}`;
+}
 
 export type SolveResult = {
   task_id: string;
+  repeat: number;
+  /** Ran out of steps without calling final_answer. */
+  exhausted: boolean;
   arm: Arm;
   model: string;
   answer: string;
@@ -35,7 +53,7 @@ export type SolveResult = {
   transcript: { role: string; content: string }[];
 };
 
-export const agentRepo = (run: string, taskId: string) => `${run}-codemode-git-t${taskId}`;
+export const agentRepo = (run: string, key: string) => `${run}-codemode-git-t${key}`;
 export const skillsRepo = (run: string) => `${run}-skills`;
 
 // The manual is ~22k chars; agents must be able to read it whole.
@@ -182,7 +200,7 @@ export class Solver extends DurableObject<Env> {
     let sink: ArtifactsSink | undefined;
     let skillsRef: string | null = null;
     if (arm === "codemode-git") {
-      sink = new ArtifactsSink({ artifacts: this.env.ARTIFACTS, repo: agentRepo(run, task.task_id) });
+      sink = new ArtifactsSink({ artifacts: this.env.ARTIFACTS, repo: agentRepo(run, agentKey(req)) });
       history = new GitHistoryConnector(this.ctx, this.env, {
         sink,
         describe: () => `t${task.task_id}: ${task.question}`.slice(0, 200),
@@ -227,6 +245,8 @@ export class Solver extends DurableObject<Env> {
     ];
     const result: SolveResult = {
       task_id: task.task_id,
+      repeat: req.repeat ?? 0,
+      exhausted: false,
       arm,
       model,
       answer: "",
@@ -289,7 +309,10 @@ export class Solver extends DurableObject<Env> {
       }
     }
 
-    if (!result.answer) result.answer = "Not Applicable";
+    if (!result.answer) {
+      result.exhausted = true;
+      result.answer = "Not Applicable";
+    }
     // Make sure every run is pushed before reporting, so the curator sees it,
     // then mark which run the answer came from.
     await history?.flush();

@@ -75,9 +75,12 @@ type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 async function chat(ai: Ai, messages: ChatMessage[]): Promise<string> {
   const out = (await runAi(ai, CODE_MODEL, {
     messages,
-    max_completion_tokens: 4000
-  })) as { choices?: { message?: { content?: string } }[]; response?: string };
-  const text = out.choices?.[0]?.message?.content ?? out.response;
+    // A reasoning model spends much of this before it writes the answer.
+    max_completion_tokens: 16000
+  })) as { choices?: { message?: { content?: string | null; reasoning_content?: string } }[]; response?: string };
+  const message = out.choices?.[0]?.message;
+  // Fall back to the reasoning text: the JSON is sometimes only there.
+  const text = message?.content || out.response || message?.reasoning_content;
   if (!text) throw new Error("empty response from model");
   return text;
 }

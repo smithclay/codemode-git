@@ -269,7 +269,7 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
         ingested++;
         this.#countUses(run);
         if (policy.finalRunsOnly) continue;
-        const skill = await this.#consider(run, policy);
+        const skill = await this.#safeConsider(run, policy);
         if (skill) published.push(skill);
       }
       if (policy.finalRunsOnly) {
@@ -278,7 +278,7 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
             .exec<RunRow>(`SELECT * FROM runs WHERE repo = ? AND sha = ?`, repo, sha)
             .toArray()[0];
           if (!run) continue;
-          const skill = await this.#consider(run, policy);
+          const skill = await this.#safeConsider(run, policy);
           if (skill) published.push(skill);
         }
       }
@@ -362,6 +362,18 @@ export class Curator<E extends Env = Env> extends DurableObject<E> {
     // Reuse: the run called library skills. That's the metric we want to go up.
     for (const name of JSON.parse(run.used_skills) as string[]) {
       this.ctx.storage.sql.exec(`UPDATE skills SET uses = uses + 1 WHERE name = ?`, name);
+    }
+  }
+
+  /** One run's failure (model, push, sandbox) is recorded, not fatal to the batch. */
+  async #safeConsider(run: RunRow, policy: CuratorPolicy): Promise<string | null> {
+    try {
+      return await this.#consider(run, policy);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`curator: considering ${run.repo}@${run.sha.slice(0, 8)} failed`, err);
+      this.#record(`error:${run.sha}`, [run.repo], "error", null, message);
+      return null;
     }
   }
 

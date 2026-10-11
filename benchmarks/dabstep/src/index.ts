@@ -1,6 +1,6 @@
 import { Curator } from "codemode-git-curator/curator";
 import { DabstepConnector } from "./connector";
-import { agentRepo, skillsRepo, Solver, type Env, type SolveRequest } from "./solver";
+import { agentKey, agentRepo, skillsRepo, Solver, type Env, type SolveRequest } from "./solver";
 
 export { CodemodeRuntime } from "codemode-git";
 export { Solver };
@@ -31,35 +31,46 @@ function curator(env: FullEnv, run: string) {
   return env.CURATOR.get(env.CURATOR.idFromName(run));
 }
 
+async function route(request: Request, env: FullEnv): Promise<Response> {
+  const url = new URL(request.url);
+
+  // One task, one fresh agent.
+  if (url.pathname === "/solve" && request.method === "POST") {
+    const req = (await request.json()) as SolveRequest;
+    if (!RUN_ID.test(req.run)) return new Response("bad run id", { status: 400 });
+    const id = env.SOLVER.idFromName(`${req.run}/${req.arm}/${agentKey(req)}`);
+    return Response.json(await env.SOLVER.get(id).solve(req));
+  }
+
+  // Curator for a run: POST /curate/<run>/backfill, GET /curate/<run>/status
+  const match = /^\/curate\/([a-z0-9-]+)\/(backfill|status)$/.exec(url.pathname);
+  if (match) {
+    const [, run, action] = match as unknown as [string, string, string];
+    if (!RUN_ID.test(run)) return new Response("bad run id", { status: 400 });
+    const stub = curator(env, run);
+    // Learn from the run each agent answered with, and promote once two
+    // independent agents converge on the same computation.
+    await stub.configure(
+      { repoPrefix: agentRepo(run, ""), skillsRepo: skillsRepo(run) },
+      { finalRunsOnly: true, minRepos: 2 }
+    );
+    if (action === "backfill" && request.method === "POST") return Response.json(await stub.backfill());
+    if (action === "status") return Response.json(await stub.status());
+  }
+
+  return new Response("POST /solve | POST /curate/:run/backfill | GET /curate/:run/status\n", { status: 404 });
+}
+
 export default {
   async fetch(request, env): Promise<Response> {
     if (!authorized(request, env)) return new Response("unauthorized", { status: 401 });
-    const url = new URL(request.url);
-
-    // One task, one fresh agent.
-    if (url.pathname === "/solve" && request.method === "POST") {
-      const req = (await request.json()) as SolveRequest;
-      if (!RUN_ID.test(req.run)) return new Response("bad run id", { status: 400 });
-      const id = env.SOLVER.idFromName(`${req.run}/${req.arm}/${req.task.task_id}`);
-      return Response.json(await env.SOLVER.get(id).solve(req));
+    try {
+      return await route(request, env);
+    } catch (err) {
+      // Give the runner the real cause instead of an HTML error page.
+      const error = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);
+      console.error("dabstep harness:", error);
+      return Response.json({ error: error.slice(0, 4000) }, { status: 500 });
     }
-
-    // Curator for a run: POST /curate/<run>/backfill, GET /curate/<run>/status
-    const match = /^\/curate\/([a-z0-9-]+)\/(backfill|status)$/.exec(url.pathname);
-    if (match) {
-      const [, run, action] = match as unknown as [string, string, string];
-      if (!RUN_ID.test(run)) return new Response("bad run id", { status: 400 });
-      const stub = curator(env, run);
-      // Learn from the run each agent answered with, and promote once two
-      // independent agents converge on the same computation.
-      await stub.configure(
-        { repoPrefix: agentRepo(run, ""), skillsRepo: skillsRepo(run) },
-        { finalRunsOnly: true, minRepos: 2 }
-      );
-      if (action === "backfill" && request.method === "POST") return Response.json(await stub.backfill());
-      if (action === "status") return Response.json(await stub.status());
-    }
-
-    return new Response("POST /solve | POST /curate/:run/backfill | GET /curate/:run/status\n", { status: 404 });
   }
 } satisfies ExportedHandler<FullEnv>;

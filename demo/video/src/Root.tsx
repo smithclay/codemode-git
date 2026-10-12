@@ -1,6 +1,6 @@
 import { Composition, Still, staticFile } from "remotion";
 import { Poster } from "./scenes/Visual";
-import { Demo, FPS, sceneFrames, type DemoProps, type Manifest } from "./Demo";
+import { Demo, FPS, sceneFrames, type Clips, type DemoProps, type Manifest } from "./Demo";
 import { scenes } from "./script";
 
 // Scene lengths come from the generated voiceover; a scene without audio yet
@@ -14,14 +14,14 @@ async function loadManifest(): Promise<Manifest> {
   }
 }
 
-// Scene ids with a recording in public/clips/<id>.mp4, listed in
-// public/clips/index.json (add the id there when you add a recording).
-async function loadClips(): Promise<string[]> {
+// Scenes with a recording in public/clips/<id>.mp4, and each clip's length,
+// from public/clips/index.json (written by scripts/record.mjs).
+async function loadClips(): Promise<Clips> {
   try {
     const res = await fetch(staticFile("clips/index.json"));
-    return res.ok ? ((await res.json()) as string[]) : [];
+    return res.ok ? ((await res.json()) as Clips) : {};
   } catch {
-    return [];
+    return {};
   }
 }
 
@@ -34,7 +34,7 @@ export const RemotionRoot = () => (
     fps={FPS}
     width={1920}
     height={1080}
-    defaultProps={{ manifest: {}, clips: [] } as DemoProps}
+    defaultProps={{ manifest: {}, clips: {} } as DemoProps}
     calculateMetadata={async () => {
       const [manifest, clips] = await Promise.all([loadManifest(), loadClips()]);
       const durationInFrames = scenes.reduce((sum, scene) => sum + sceneFrames(scene, manifest, clips), 0);

@@ -3,8 +3,9 @@
 //   node scripts/record.mjs [new-worker]
 // VHS writes text and cursor frames to frames-<name>/; ffmpeg
 // overlays them, centers them on a 1920×1080 background, and writes
-// public/clips/<name>.mp4. (VHS's built-in encoding fails silently with
-// ffmpeg 9.) Then add <name> to public/clips/index.json.
+// public/clips/<name>.mp4, and records its length in public/clips/index.json.
+// <name> must be the id of the scene that plays it. (VHS's built-in encoding
+// fails silently with ffmpeg 9.)
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -34,8 +35,10 @@ execFileSync("ffmpeg", [
 ], { stdio: "inherit" });
 rmSync(frames, { recursive: true, force: true });
 
-const indexPath = join(root, "public/clips/index.json");
-const index = existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, "utf8")) : [];
-if (!index.includes(name)) writeFileSync(indexPath, JSON.stringify([...index, name], null, 2) + "\n");
+// index.json maps each recorded scene to its clip's length, so the scene
+// lasts at least as long as the recording.
 const seconds = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", out]).toString());
-console.log(`${out}: ${seconds.toFixed(1)}s; "${name}" is listed in public/clips/index.json`);
+const indexPath = join(root, "public/clips/index.json");
+const index = existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, "utf8")) : {};
+writeFileSync(indexPath, JSON.stringify({ ...index, [name]: Math.round(seconds * 10) / 10 }, null, 2) + "\n");
+console.log(`${out}: ${seconds.toFixed(1)}s; listed in public/clips/index.json`);

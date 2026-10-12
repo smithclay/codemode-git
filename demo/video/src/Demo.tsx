@@ -7,10 +7,12 @@ export const FPS = 30;
 
 export type Word = { word: string; start: number; end: number };
 export type Manifest = Record<string, { file: string; hash: string; text: string; seconds: number; words: Word[] }>;
-export type DemoProps = { manifest: Manifest; clips: string[] };
+/** Recorded scenes and their clip lengths, from public/clips/index.json. */
+export type Clips = Record<string, number>;
+export type DemoProps = { manifest: Manifest; clips: Clips };
 
-export const sceneFrames = (scene: Scene, manifest: Manifest, clips: string[]) =>
-  Math.ceil(sceneSeconds(scene, manifest[scene.id]?.seconds, clips.includes(scene.id)) * FPS);
+export const sceneFrames = (scene: Scene, manifest: Manifest, clips: Clips) =>
+  Math.ceil(sceneSeconds(scene, manifest[scene.id]?.seconds, clips[scene.id]) * FPS);
 
 /**
  * Seconds into the scene when a word is spoken, for syncing visuals to the
@@ -49,7 +51,7 @@ export const Demo = ({ manifest, clips }: DemoProps) => (
       {scenes.map((scene) => {
         const voice = manifest[scene.id];
         const words = voice ? alignToScript(voice.text, voice.words) : [];
-        const clip = clips.includes(scene.id) ? staticFile(`clips/${scene.id}.mp4`) : null;
+        const clip = clips[scene.id] ? staticFile(`clips/${scene.id}.mp4`) : null;
         return (
           <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, manifest, clips)} name={scene.id}>
             {clip ? (

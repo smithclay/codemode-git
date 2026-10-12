@@ -6,9 +6,11 @@
 // Style: one idea per scene, told with a diagram, with on-screen text of a few
 // words at most. The voiceover carries the detail.
 //
-// `minSeconds` is how long a scene's recording (public/clips/<id>.mp4, listed
-// in public/clips/index.json) needs. It applies only once the recording
-// exists. The rules require 5–10 min; `npm run voiceover` reports the total.
+// A scene plays public/clips/<id>.mp4 instead of its diagram when
+// public/clips/index.json lists it (scripts/record.mjs does that), and lasts
+// at least as long as the clip. `minSeconds` estimates an empty slot's length
+// for the runtime report. The rules require 5–10 min; `npm run voiceover`
+// reports the total.
 
 export type Visual =
   | "thesis"
@@ -42,12 +44,12 @@ export const HOLD = 0.6;
 
 /**
  * A scene's length: its voiceover plus the lead-in and hold, stretched to
- * `minSeconds` only when that scene's recording exists. Placeholders
- * shouldn't pad with silence.
+ * fit its recording (`clipSeconds`, from public/clips/index.json) when there
+ * is one. Placeholders don't pad with silence.
  */
-export function sceneSeconds(scene: Scene, voiceSeconds: number | undefined, hasClip: boolean): number {
+export function sceneSeconds(scene: Scene, voiceSeconds: number | undefined, clipSeconds?: number): number {
   const voiced = LEAD_IN + (voiceSeconds ?? 8) + HOLD + (scene.extraHold ?? 0);
-  return hasClip ? Math.max(voiced, scene.minSeconds ?? 0) : voiced;
+  return clipSeconds ? Math.max(voiced, clipSeconds + 0.3) : voiced;
 }
 
 export const scenes: Scene[] = [

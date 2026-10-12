@@ -131,12 +131,19 @@ console.log(`${generated} scene(s) generated, ${scenes.length - generated} cache
 
 // Runtime report: what the composition will use, scene by scene.
 const clipsPath = join(root, "public/clips/index.json");
-const clips = existsSync(clipsPath) ? JSON.parse(readFileSync(clipsPath, "utf8")) : [];
-const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
+const clips = existsSync(clipsPath) ? JSON.parse(readFileSync(clipsPath, "utf8")) : {};
+const fmt = (sec) => {
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
 let runtime = 0;
 for (const scene of scenes) {
-  const seconds = sceneSeconds(scene, manifest[scene.id].seconds, clips.includes(scene.id));
-  const slot = scene.minSeconds ? (clips.includes(scene.id) ? `  recording (${scene.minSeconds}s)` : `  recording slot empty (+${Math.max(0, scene.minSeconds - seconds).toFixed(0)}s when filled)`) : "";
+  const seconds = sceneSeconds(scene, manifest[scene.id].seconds, clips[scene.id]);
+  const slot = clips[scene.id]
+    ? `  recording (${clips[scene.id]}s)`
+    : scene.minSeconds
+      ? `  recording slot empty (about +${Math.max(0, scene.minSeconds - seconds).toFixed(0)}s when filled)`
+      : "";
   console.log(`${fmt(runtime).padStart(5)}  ${scene.id.padEnd(16)} ${seconds.toFixed(1).padStart(5)}s${slot}`);
   runtime += seconds;
 }

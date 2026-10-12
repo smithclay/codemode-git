@@ -6,8 +6,8 @@ import {
   type ExecutionEndStatus,
   type ExecutionState
 } from "@cloudflare/codemode";
-import { defaultIntent, FILES, toCommit, type CommitContent } from "./format";
-import type { GitSink } from "./sink";
+import { defaultIntent, FILES, toCommit, type CommitContent } from "./format.js";
+import type { GitSink } from "./sink.js";
 
 export type GitHistoryOptions = {
   sink: GitSink;

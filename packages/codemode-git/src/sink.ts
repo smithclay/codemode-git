@@ -1,7 +1,7 @@
 import git from "isomorphic-git";
 import http from "isomorphic-git/http/web";
-import type { CommitContent } from "./format";
-import { MemoryFS } from "./memory-fs";
+import type { CommitContent } from "./format.js";
+import { MemoryFS } from "./memory-fs.js";
 
 /** Where commits go. Swappable so the plugin isn't tied to one git host. */
 export interface GitSink {

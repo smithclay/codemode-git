@@ -1,0 +1,71 @@
+name: Publish package
+
+# Publishes @smithclay/codemode-git when a GitHub release is published:
+# to npmjs with trusted publishing (OIDC, no npm token, automatic provenance)
+# and to GitHub Packages. Tag releases v<version>, matching packages/codemode-git/package.json.
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Check tag matches package version
+        run: |
+          version=$(node -p "require('./packages/codemode-git/package.json').version")
+          test "${GITHUB_REF_NAME}" = "v${version}" || { echo "tag ${GITHUB_REF_NAME} != v${version}"; exit 1; }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test --workspace @smithclay/codemode-git
+
+  npm:
+    needs: verify
+    runs-on: ubuntu-latest
+    # Add required reviewers to this environment for a manual approval gate.
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # OIDC for npm trusted publishing
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24 # ships npm >= 11.5.1, needed for trusted publishing
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm publish --workspace @smithclay/codemode-git
+
+  github-packages:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm config set //npm.pkg.github.com/:_authToken "$NODE_AUTH_TOKEN"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm publish --workspace @smithclay/codemode-git --registry https://npm.pkg.github.com

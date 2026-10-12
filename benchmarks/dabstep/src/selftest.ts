@@ -3,7 +3,7 @@
 // fast and nearly free. Run it before any paid experiment:
 //   curl -X POST localhost:8789/selftest
 import type { createCodemodeRuntime } from "@cloudflare/codemode";
-import { indexExample, retrieveExamples } from "codemode-git";
+import { indexExample, retrieveExamples } from "@smithclay/codemode-git";
 
 type Check = { name: string; ok: boolean; detail?: string };
 

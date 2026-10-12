@@ -8,7 +8,7 @@ import {
   toFinalCommit,
   TRAILERS,
   type Example
-} from "codemode-git";
+} from "@smithclay/codemode-git";
 import { runAi } from "./ai";
 import { DabstepConnector, SCHEMA } from "./connector";
 import { selfTest } from "./selftest";

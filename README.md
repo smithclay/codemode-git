@@ -1,14 +1,49 @@
 # codemode-git
 
+[![CI](https://github.com/smithclay/codemode-git/actions/workflows/ci.yml/badge.svg)](https://github.com/smithclay/codemode-git/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@smithclay/codemode-git)](https://www.npmjs.com/package/@smithclay/codemode-git)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Built with cf](https://img.shields.io/badge/built%20with-cf%20CLI-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/cf/)
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)
+
 Every [Code Mode](https://www.npmjs.com/package/@cloudflare/codemode) execution becomes a git commit on that agent's own [Cloudflare Artifacts](https://developers.cloudflare.com/artifacts/) repo. Clone it with plain `git` and `git log -p run.js` is the agent's trajectory.
 
 Optionally, agents learn from each other: each agent's answer-producing run is embedded into [Vectorize](https://developers.cloudflare.com/vectorize/), and a new agent starts with the closest runs other agents committed, as unverified examples. On all 450 tasks of the [DABstep](https://huggingface.co/spaces/adyen/DABstep) data-analysis benchmark, with the same model (glm-5.3-flash) and prompt, adding examples raised accuracy from 32.2% to 46.2% on Adyen's official scorer (hard tasks: 23.5% → 38.6%). It also cut median tokens per task by about two thirds (see [docs/experiments.md](docs/experiments.md)).
+
+## Install
+
+```bash
+npm install @smithclay/codemode-git @cloudflare/codemode
+```
+
+`@cloudflare/codemode` is a peer dependency. The package targets Cloudflare Workers (Durable Objects, Artifacts, Vectorize), so it runs in a Worker, not in plain Node. Releases are published from GitHub Actions with [npm provenance](https://docs.npmjs.com/generating-provenance-statements).
+
+<details>
+<summary>Install from GitHub Packages instead</summary>
+
+The same package is mirrored to [GitHub Packages](https://github.com/smithclay/codemode-git/pkgs/npm/codemode-git), which needs a token even for public packages: a [personal access token (classic)](https://github.com/settings/tokens) with `read:packages`, exported as `GITHUB_TOKEN`. npm and pnpm read `.npmrc`:
+
+```ini
+@smithclay:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Yarn (v2+) reads `.yarnrc.yml`:
+
+```yaml
+npmScopes:
+  smithclay:
+    npmRegistryServer: "https://npm.pkg.github.com"
+    npmAuthToken: "${GITHUB_TOKEN}"
+```
+</details>
 
 ## Use it in a Code Mode agent
 
 ```ts
 import { createCodemodeRuntime, DynamicWorkerExecutor } from "@cloudflare/codemode";
-import { ArtifactsSink, GitHistoryConnector } from "codemode-git";
+import { ArtifactsSink, GitHistoryConnector } from "@smithclay/codemode-git";
 
 const history = new GitHistoryConnector(this.ctx, this.env, {
   sink: new ArtifactsSink({ artifacts: this.env.ARTIFACTS, repo: `agent-${name}` })
@@ -36,7 +71,7 @@ The commit message is the run's intent (by default the code's leading `//` comme
 ## Examples: learning from other agents' runs (optional)
 
 ```ts
-import { indexExample, retrieveExamples } from "codemode-git";
+import { indexExample, retrieveExamples } from "@smithclay/codemode-git";
 
 // Before solving: the 3 closest answer-producing runs of other tasks in this scope.
 const examples = await retrieveExamples({ ai: env.AI, index: env.EXAMPLES, scope, question, excludeTask: taskId });
@@ -103,6 +138,30 @@ cf artifacts namespaces tokens create codemode-git --repo agent-alice --scope re
 git -c http.extraHeader="Authorization: Bearer <token>" clone https://<account-id>.artifacts.cloudflare.net/git/codemode-git/agent-alice.git
 git log --format='%h %s [%(trailers:key=Codemode-Status,valueonly)]'
 ```
+
+### Deploy it
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)
+
+The button copies `examples/agent` into a new repo on your GitHub or GitLab account and deploys it with Workers Builds. Create the Artifacts namespace first: the button doesn't provision Artifacts. Set `ADMIN_TOKEN` when it asks, because the Worker runs any code it's sent. The button doesn't document support for `cf` projects (`cloudflare.config.ts`) yet. If the build fails, deploy from the command line:
+
+```bash
+npx cf artifacts namespaces create --namespace codemode-git
+cd examples/agent
+npx cf deploy
+npx cf workers secrets update ADMIN_TOKEN --worker codemode-git-example --text "$(openssl rand -hex 32)"
+```
+
+## Releasing
+
+[`publish.yml`](.github/workflows/publish.yml) runs when a GitHub release is published. It checks that the tag is `v<version>` from `packages/codemode-git/package.json`, typechecks and tests, then publishes to npmjs with [trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC, no npm token, automatic provenance) and to GitHub Packages.
+
+One-time npm setup:
+
+1. Publish the first version from your machine (`npm publish --workspace @smithclay/codemode-git`). A trusted publisher can only be added to a package that exists.
+2. In the package's settings on npmjs.com, add a trusted publisher: GitHub Actions, repository `smithclay/codemode-git`, workflow `publish.yml`, environment `npm`.
+3. Under Publishing access, choose "Require two-factor authentication and disallow tokens".
+4. Optionally, add required reviewers to the `npm` environment in the repo settings, so each publish waits for approval.
 
 ## Tests
 

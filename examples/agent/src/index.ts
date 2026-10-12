@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { createCodemodeRuntime, DynamicWorkerExecutor } from "@cloudflare/codemode";
-import { ArtifactsSink, GitHistoryConnector } from "codemode-git";
+import { ArtifactsSink, GitHistoryConnector } from "@smithclay/codemode-git";
 import { CatalogConnector } from "./catalog";
 
 // Code Mode's runtime facet class must be exported from the entry module.

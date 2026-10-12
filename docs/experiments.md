@@ -83,3 +83,52 @@ The fresh baseline reproduced tpl36a's baseline accuracy (8/18).
 - The 18 graded trials are 6 tasks × 3 repeats, which are correlated. At the task level, examples improved 4 tasks and worsened none (sign test p≈0.13).
 - Trial-level McNemar (6 vs 0, p≈0.03) overstates the evidence.
 - Wave 1 had no examples, yet already differed by 36% in tokens, consistent with the ~30% between-arm noise seen in ab25a.
+
+## val1: compact-results prompt (rejected)
+
+**What was tested:**
+- A "keep results small" prompt rule.
+- An 8k-character cap on data results.
+- A "filter the manual in code instead of re-reading it" line.
+
+**Setup:** baseline arm only, 30 tasks paired with tpl36b's baseline.
+
+**Result:**
+
+| | tpl36b baseline | val1 |
+|---|---|---|
+| Mean tokens | 224k | 160k (−29%) |
+| Graded accuracy | 8/18 | 5/18 |
+| Step-limit exhaustion | 1 | 3 |
+
+**Decision:** reverted all three under the pre-agreed rule (roll back at ≤5/18 or ≥2 more exhaustions). The likely cause is that agents saw less of the data and the manual they need.
+
+## full1: all 450 DABstep tasks, baseline vs examples
+
+**Setup:**
+- Same model (glm-5.3-flash), prompt and task order (`data/tasks/all.jsonl`) in both arms.
+- Rolling concurrency 8 per arm, run side by side.
+- The examples arm retrieves from runs earlier in the same run; it has no answers or labels.
+
+**Infrastructure failures:** connection resets (ECONNRESET) on long tasks were re-run.
+- These were 13 baseline tasks and 10 examples tasks.
+- The runner now reconnects to the same agent instead of starting over.
+- The 10 re-run examples-arm tasks saw a fuller index than they would have at their original position.
+
+**Spend:** $26.76 in Workers AI for the run, including retries.
+
+**Results** (paired over all 450 tasks):
+
+| Per task | Baseline | Examples | Paired diff (95% CI) |
+|---|---|---|---|
+| Code runs | 13.8 | 9.4 | −4.4 [−5.0, −3.8] |
+| Model steps | 12.7 | 9.5 | −3.3 [−3.8, −2.7] |
+| Tokens (mean / median) | 220k / 191k | 177k / 61k | −43k [−60k, −26k] |
+| Step-limit exhaustion | 13% | 7% | −6 pts [−9, −2] |
+| Seconds (mean / median) | 540 / 510 | 532 / 341 | n.s. |
+| "Not Applicable" answers | 74 | 38 | |
+
+**Interpretation:**
+- **Tokens:** the median task needs a third of the tokens. A tail of hard tasks costs about the same in both arms.
+- **Agreement:** the arms gave identical answers on 155/450 tasks.
+- **Accuracy:** only 6 of the 450 have public answers, and both arms got 2/6. Accuracy comes from the leaderboard: `results/full1-*.submission.jsonl`, scored by Adyen's official scorer on the Unvalidated leaderboard.

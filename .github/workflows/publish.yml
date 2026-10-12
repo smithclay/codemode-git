@@ -1,0 +1,33 @@
+name: Publish package
+
+# Publishes @smithclay/codemode-git to GitHub Packages when a release is
+# published. Tag releases as v<version>, matching packages/codemode-git/package.json.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: "@smithclay"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test --workspace @smithclay/codemode-git
+      - name: Check tag matches package version
+        if: github.event_name == 'release'
+        run: |
+          version=$(node -p "require('./packages/codemode-git/package.json').version")
+          test "${GITHUB_REF_NAME}" = "v${version}" || { echo "tag ${GITHUB_REF_NAME} != v${version}"; exit 1; }
+      - run: npm publish --workspace @smithclay/codemode-git
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@cloudflare/codemode": "^0.5.3",
-    "codemode-git": "*"
+    "@smithclay/codemode-git": "*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261011.1",

@@ -4,11 +4,39 @@ Every [Code Mode](https://www.npmjs.com/package/@cloudflare/codemode) execution 
 
 Optionally, agents learn from each other: each agent's answer-producing run is embedded into [Vectorize](https://developers.cloudflare.com/vectorize/), and a new agent starts with the closest runs other agents committed, as unverified examples. On all 450 tasks of the [DABstep](https://huggingface.co/spaces/adyen/DABstep) data-analysis benchmark, with the same model (glm-5.3-flash) and prompt, adding examples raised accuracy from 32.2% to 46.2% on Adyen's official scorer (hard tasks: 23.5% → 38.6%). It also cut median tokens per task by about two thirds (see [docs/experiments.md](docs/experiments.md)).
 
+## Install
+
+The package is published to [GitHub Packages](https://github.com/smithclay/codemode-git/pkgs/npm/codemode-git) as `@smithclay/codemode-git`. GitHub Packages needs a token to install, even for public packages. Use a [personal access token (classic)](https://github.com/settings/tokens) with the `read:packages` scope, exported as `GITHUB_TOKEN`.
+
+npm and pnpm read a project `.npmrc`:
+
+```ini
+@smithclay:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Yarn (v2+) reads `.yarnrc.yml`:
+
+```yaml
+npmScopes:
+  smithclay:
+    npmRegistryServer: "https://npm.pkg.github.com"
+    npmAuthToken: "${GITHUB_TOKEN}"
+```
+
+Then install it alongside Code Mode, which is a peer dependency:
+
+```bash
+npm install @smithclay/codemode-git @cloudflare/codemode
+```
+
+It targets Cloudflare Workers (Durable Objects, Artifacts, Vectorize), so it runs in a Worker, not in plain Node.
+
 ## Use it in a Code Mode agent
 
 ```ts
 import { createCodemodeRuntime, DynamicWorkerExecutor } from "@cloudflare/codemode";
-import { ArtifactsSink, GitHistoryConnector } from "codemode-git";
+import { ArtifactsSink, GitHistoryConnector } from "@smithclay/codemode-git";
 
 const history = new GitHistoryConnector(this.ctx, this.env, {
   sink: new ArtifactsSink({ artifacts: this.env.ARTIFACTS, repo: `agent-${name}` })
@@ -36,7 +64,7 @@ The commit message is the run's intent (by default the code's leading `//` comme
 ## Examples: learning from other agents' runs (optional)
 
 ```ts
-import { indexExample, retrieveExamples } from "codemode-git";
+import { indexExample, retrieveExamples } from "@smithclay/codemode-git";
 
 // Before solving: the 3 closest answer-producing runs of other tasks in this scope.
 const examples = await retrieveExamples({ ai: env.AI, index: env.EXAMPLES, scope, question, excludeTask: taskId });

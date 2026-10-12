@@ -1,5 +1,5 @@
-export { GitHistoryConnector, type GitHistoryOptions } from "./connector";
-export { ArtifactsSink, type ArtifactsSinkOptions, type GitSink } from "./sink";
+export { GitHistoryConnector, type GitHistoryOptions } from "./connector.js";
+export { ArtifactsSink, type ArtifactsSinkOptions, type GitSink } from "./sink.js";
 export {
   FILES,
   TRAILERS,
@@ -9,6 +9,6 @@ export {
   toCommit,
   toFinalCommit,
   type CommitContent
-} from "./format";
-export { MemoryFS } from "./memory-fs";
-export { EXAMPLE_EMBEDDING_MODEL, indexExample, retrieveExamples, type Example } from "./examples";
+} from "./format.js";
+export { MemoryFS } from "./memory-fs.js";
+export { EXAMPLE_EMBEDDING_MODEL, indexExample, retrieveExamples, type Example } from "./examples.js";

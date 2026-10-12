@@ -19,7 +19,7 @@
     "directory": "packages/codemode-git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -39,5 +39,17 @@
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "homepage": "https://github.com/smithclay/codemode-git#readme",
+  "bugs": {
+    "url": "https://github.com/smithclay/codemode-git/issues"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "codemode",
+    "git",
+    "agents",
+    "artifacts"
+  ]
 }

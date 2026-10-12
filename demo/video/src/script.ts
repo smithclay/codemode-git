@@ -10,8 +10,8 @@
 // when present) that runs longer than its voiceover. The rules require 5–10 min.
 
 export type Visual =
+  | "thesis"
   | "hook"
-  | "title"
   | "vanish"
   | "code-mode"
   | "gap"
@@ -32,15 +32,16 @@ export const SPEAKER = "orion";
 
 export const scenes: Scene[] = [
   {
+    id: "thesis",
+    visual: "thesis",
+    voiceover:
+      "What if Cloudflare Artifacts could make Code Mode self-improving? Every Code Mode run is a program. Keep every program, and let the next agent learn from it. That's codemode-git."
+  },
+  {
     id: "hook",
     visual: "hook",
     voiceover:
-      "Same model. Same prompt. Same four hundred and fifty tasks. Accuracy goes from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. We didn't change the model. We gave it a memory."
-  },
-  {
-    id: "title",
-    visual: "title",
-    voiceover: "This is codemode-git: code memory for Code Mode agents, built on Cloudflare Artifacts."
+      "We tried it. Same model. Same prompt. Same four hundred and fifty tasks. Accuracy went from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. The only thing we added was memory."
   },
   {
     id: "vanish",

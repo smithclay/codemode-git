@@ -11,8 +11,8 @@ import { theme, WAX } from "../theme";
 
 export function Visual({ visual, cue }: { visual: VisualKind; cue: Cue }) {
   const scenes: Record<VisualKind, () => ReactNode> = {
+    thesis: () => <Thesis cue={cue} />,
     hook: () => <Hook cue={cue} />,
-    title: () => <Title />,
     vanish: () => <Vanish cue={cue} />,
     "code-mode": () => <CodeMode cue={cue} />,
     gap: () => <Gap cue={cue} />,
@@ -183,24 +183,36 @@ function Hook({ cue }: { cue: Cue }) {
   );
 }
 
-function Title() {
-  const p = useIn(0.2);
-  const p2 = useIn(0.8);
+function Thesis({ cue }: { cue: Cue }) {
+  const t = useSeconds();
+  // The question builds phrase by phrase, then the name lands under it.
+  const parts = [
+    { text: "What if Cloudflare Artifacts", at: cue("What if", 0.5), color: theme.text },
+    { text: "could make Code Mode", at: cue("could make", 1.6), color: theme.text },
+    { text: "self-improving?", at: cue("self-improving?", 2.6), color: theme.amber }
+  ];
+  const tKeep = cue("Keep", 6);
+  const tName = cue("That's", 9);
+  const settle = ramp(t, tName - 0.4, tName + 0.4);
   return (
     <Canvas>
-      <LavaWall />
-      <rect x={0} y={0} width={1920} height={1080} fill="url(#fade)" />
+      <LavaWall opacity={0.12 + 0.2 * settle} top={560} rows={4} />
       <defs>
-        <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={theme.bg} stopOpacity={0.97} />
-          <stop offset="0.35" stopColor={theme.bg} stopOpacity={0.6} />
-          <stop offset="0.65" stopColor={theme.bg} stopOpacity={0} />
+        <linearGradient id="thesis-fade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0.45" stopColor={theme.bg} stopOpacity={1} />
+          <stop offset="0.8" stopColor={theme.bg} stopOpacity={0.4} />
         </linearGradient>
       </defs>
-      <Label x={120} y={170} size={120} anchor="start" weight={800} opacity={p}>codemode-git</Label>
-      <Label x={124} y={270} size={44} anchor="start" color={theme.amber} weight={500} opacity={p2}>
-        code memory for Code Mode agents, on Cloudflare Artifacts
+      <rect x={0} y={0} width={1920} height={1080} fill="url(#thesis-fade)" />
+      {parts.map((p, i) => (
+        <Label key={p.text} x={960} y={250 + i * 120 - settle * 40} size={92} weight={800} color={p.color} opacity={ramp(t, p.at - 0.2, p.at + 0.3)}>
+          {p.text}
+        </Label>
+      ))}
+      <Label x={960} y={640 - settle * 40} size={36} color={theme.muted} weight={500} opacity={ramp(t, tKeep - 0.3, tKeep + 0.3) * (1 - settle)}>
+        keep every run · learn from it
       </Label>
+      <Label x={960} y={640} size={72} weight={800} mono opacity={settle}>codemode-git</Label>
     </Canvas>
   );
 }

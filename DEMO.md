@@ -4,6 +4,9 @@
 
 ## The one-two punch
 
+**Thesis (the opening line):** what if Cloudflare Artifacts could make Code Mode self-improving?
+
+
 1. **Code Mode (Cloudflare's insight).** Models are better at writing code than at calling tools one at a time. In Code Mode the agent writes one function that chains tool calls, and Cloudflare calls that code "a compact plan" ([Code Mode MCP post](https://blog.cloudflare.com/code-mode-mcp/)). Each snippet runs in a fresh isolate, which is then thrown away ([Dynamic Workers post](https://blog.cloudflare.com/dynamic-workers/)).
 2. **Code memory (ours).** If the code is the plan, then the code an agent writes over time is its experience, and today it's thrown away with the isolate. We keep it:
    - **Phase 1, durable:** every Code Mode execution is saved to the agent's own Cloudflare Artifacts repo.
@@ -29,8 +32,8 @@ The video is code: [demo/video](demo/video). [src/script.ts](demo/video/src/scri
 
 | # | Scene | Diagram | Point |
 |---|---|---|---|
-| 1 | **Hook** | 32.2% → 46.2% counter. "Hard tasks: 23.5% → 38.6%". "+ memory" | Lead with the result: same model, same prompt |
-| 2 | **Title** | Lava lamp wall, then the name | codemode-git: code memory on Cloudflare Artifacts |
+| 1 | **Thesis** | "What if Cloudflare Artifacts could make Code Mode self-improving?", built phrase by phrase, then the name | The hook is the thesis |
+| 2 | **We tried it** | 32.2% → 46.2% counter. "Hard tasks: 23.5% → 38.6%". "+ memory" | The result, as proof of the thesis: same model, same prompt |
 | 3 | **Every agent starts from zero** | A grid of agents, each writing code that dissolves | The problem |
 | 4 | **Code Mode** | Before: model ⇄ tools ping-pong. After: one program in an isolate | Brief context; the code is the plan |
 | 5 | **The gap** | The isolate collapses, and the code falls away | The plan is thrown away |

@@ -54,6 +54,19 @@ async function transcribe(audio) {
   return (body.result ?? body).words ?? [];
 }
 
+// Workers AI occasionally drops a connection; retry a few times.
+async function retry(label, fn) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt >= 4) throw err;
+      process.stderr.write(`(${label} failed: ${String(err.message ?? err).slice(0, 80)}; retrying) `);
+      await new Promise((r) => setTimeout(r, 1000 * attempt));
+    }
+  }
+}
+
 const duration = (file) =>
   Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).toString().trim());
 
@@ -69,11 +82,13 @@ for (const scene of scenes) {
     continue;
   }
   process.stderr.write(`${scene.id}: speaking ${scene.voiceover.length} chars… `);
-  const audio = await speak(scene.voiceover);
+  const audio = await retry("tts", () => speak(scene.voiceover));
   writeFileSync(path, audio);
-  const words = (await transcribe(audio)).map((w) => ({ word: w.word, start: w.start, end: w.end }));
+  const words = (await retry("transcribe", () => transcribe(audio))).map((w) => ({ word: w.word, start: w.start, end: w.end }));
   manifest[scene.id] = { file, hash, seconds: duration(path), words };
   generated++;
+  // Save progress, so a failure later doesn't lose this scene.
+  writeFileSync(manifestPath, JSON.stringify({ ...previous, ...manifest }, null, 2) + "\n");
   process.stderr.write(`${manifest[scene.id].seconds.toFixed(1)}s\n`);
 }
 writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");

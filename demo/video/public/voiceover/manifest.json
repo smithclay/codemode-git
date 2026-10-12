@@ -189,9 +189,9 @@
   },
   "hook": {
     "file": "voiceover/hook.mp3",
-    "hash": "3633dac719785ab6",
-    "text": "We used an open source data analytics benchmark with the same four hundred and fifty tasks. Accuracy went from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. The only thing we added was memory.",
-    "seconds": 14.784,
+    "hash": "4d37c8ff1a40259b",
+    "text": "We used an open source data analytics benchmark with the same four hundred and fifty tasks. Accuracy went from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. The only thing we added was memory using Artifacts.",
+    "seconds": 18.048,
     "words": [
       {
         "word": "We",
@@ -201,177 +201,187 @@
       {
         "word": "used",
         "start": 0.23999999463558197,
-        "end": 0.5
+        "end": 0.5799999833106995
       },
       {
         "word": "an",
-        "start": 0.5,
-        "end": 0.6399999856948853
+        "start": 0.5799999833106995,
+        "end": 0.7200000286102295
       },
       {
         "word": "open",
-        "start": 0.6399999856948853,
-        "end": 0.8399999737739563
+        "start": 0.7200000286102295,
+        "end": 0.9800000190734863
       },
       {
         "word": "source",
-        "start": 0.8399999737739563,
-        "end": 1.1200000047683716
+        "start": 0.9800000190734863,
+        "end": 1.2999999523162842
       },
       {
         "word": "data",
-        "start": 1.1200000047683716,
-        "end": 1.5800000429153442
+        "start": 1.2999999523162842,
+        "end": 1.7400000095367432
       },
       {
         "word": "analytics",
-        "start": 1.5800000429153442,
-        "end": 2.0399999618530273
+        "start": 1.7400000095367432,
+        "end": 2.259999990463257
       },
       {
         "word": "benchmark",
-        "start": 2.0399999618530273,
-        "end": 2.619999885559082
+        "start": 2.259999990463257,
+        "end": 2.799999952316284
       },
       {
         "word": "with",
-        "start": 2.619999885559082,
-        "end": 2.9800000190734863
+        "start": 2.799999952316284,
+        "end": 3.2200000286102295
       },
       {
         "word": "the",
-        "start": 2.9800000190734863,
-        "end": 3.1600000858306885
+        "start": 3.2200000286102295,
+        "end": 3.380000114440918
       },
       {
         "word": "same",
-        "start": 3.1600000858306885,
-        "end": 3.4000000953674316
+        "start": 3.380000114440918,
+        "end": 3.640000104904175
       },
       {
         "word": "450",
-        "start": 3.4000000953674316,
-        "end": 4.099999904632568
+        "start": 3.640000104904175,
+        "end": 4.340000152587891
       },
       {
         "word": "tasks.",
-        "start": 4.099999904632568,
-        "end": 5.5
+        "start": 4.340000152587891,
+        "end": 6.239999771118164
       },
       {
         "word": "Accuracy",
-        "start": 5.5,
-        "end": 5.960000038146973
+        "start": 6.239999771118164,
+        "end": 6.920000076293945
       },
       {
         "word": "went",
-        "start": 5.960000038146973,
-        "end": 6.21999979019165
+        "start": 6.920000076293945,
+        "end": 7.159999847412109
       },
       {
         "word": "from",
-        "start": 6.21999979019165,
-        "end": 6.480000019073486
+        "start": 7.159999847412109,
+        "end": 7.400000095367432
       },
       {
         "word": "32",
-        "start": 6.480000019073486,
-        "end": 6.900000095367432
+        "start": 7.400000095367432,
+        "end": 7.860000133514404
       },
       {
         "word": "%",
-        "start": 6.900000095367432,
-        "end": 7.340000152587891
+        "start": 7.860000133514404,
+        "end": 8.319999694824219
       },
       {
         "word": "to",
-        "start": 7.340000152587891,
-        "end": 7.599999904632568
+        "start": 8.319999694824219,
+        "end": 8.760000228881836
       },
       {
         "word": "46,",
-        "start": 7.599999904632568,
-        "end": 8.819999694824219
+        "start": 8.760000228881836,
+        "end": 10.15999984741211
       },
       {
         "word": "on",
-        "start": 8.819999694824219,
-        "end": 9
+        "start": 10.15999984741211,
+        "end": 10.420000076293945
       },
       {
         "word": "the",
-        "start": 9,
-        "end": 9.100000381469727
+        "start": 10.420000076293945,
+        "end": 10.5600004196167
       },
       {
         "word": "hardest",
-        "start": 9.100000381469727,
-        "end": 9.359999656677246
+        "start": 10.5600004196167,
+        "end": 10.819999694824219
       },
       {
         "word": "tasks",
-        "start": 9.359999656677246,
-        "end": 9.920000076293945
+        "start": 10.819999694824219,
+        "end": 11.380000114440918
       },
       {
         "word": "from",
-        "start": 9.920000076293945,
-        "end": 10.479999542236328
+        "start": 11.380000114440918,
+        "end": 11.960000038146973
       },
       {
         "word": "23",
-        "start": 10.479999542236328,
-        "end": 11.039999961853027
+        "start": 11.960000038146973,
+        "end": 12.539999961853027
       },
       {
         "word": "to",
-        "start": 11.039999961853027,
-        "end": 11.34000015258789
+        "start": 12.539999961853027,
+        "end": 13.079999923706055
       },
       {
         "word": "almost",
-        "start": 11.34000015258789,
-        "end": 11.600000381469727
+        "start": 13.079999923706055,
+        "end": 13.420000076293945
       },
       {
         "word": "39.",
-        "start": 11.600000381469727,
-        "end": 13
+        "start": 13.420000076293945,
+        "end": 14.779999732971191
       },
       {
         "word": "The",
-        "start": 13,
-        "end": 13.140000343322754
+        "start": 14.779999732971191,
+        "end": 14.979999542236328
       },
       {
         "word": "only",
-        "start": 13.140000343322754,
-        "end": 13.34000015258789
+        "start": 14.979999542236328,
+        "end": 15.199999809265137
       },
       {
         "word": "thing",
-        "start": 13.34000015258789,
-        "end": 13.539999961853027
+        "start": 15.199999809265137,
+        "end": 15.4399995803833
       },
       {
         "word": "we",
-        "start": 13.539999961853027,
-        "end": 13.720000267028809
+        "start": 15.4399995803833,
+        "end": 15.619999885559082
       },
       {
         "word": "added",
-        "start": 13.720000267028809,
-        "end": 13.960000038146973
+        "start": 15.619999885559082,
+        "end": 15.920000076293945
       },
       {
         "word": "was",
-        "start": 13.960000038146973,
-        "end": 14.220000267028809
+        "start": 15.920000076293945,
+        "end": 16.280000686645508
       },
       {
-        "word": "memory.",
-        "start": 14.220000267028809,
-        "end": 14.760000228881836
+        "word": "memory",
+        "start": 16.280000686645508,
+        "end": 16.639999389648438
+      },
+      {
+        "word": "using",
+        "start": 16.639999389648438,
+        "end": 17.100000381469727
+      },
+      {
+        "word": "artifacts.",
+        "start": 17.100000381469727,
+        "end": 18.020000457763672
       }
     ]
   },
@@ -2114,244 +2124,294 @@
   },
   "curve": {
     "file": "voiceover/curve.mp3",
-    "hash": "5ef02e6839ba3a17",
-    "text": "At scale, we ran the DABstep benchmark: four hundred and fifty real data investigations over Adyen's payments data. With no memory, both arms cost the same. As memory fills, the median cost per task drops to about a third, within the first few dozen tasks, and it stays there.",
-    "seconds": 20.256,
+    "hash": "2a88f36f166a9dc2",
+    "text": "At scale, we ran the DABstep benchmark: four hundred and fifty real multi-step data investigations over payments data. With no code stored in Artifacts, both arms cost the same. However, as Code Mode and Vectorize index more programs, the median cost per task drops to about a third, within the first few dozen tasks, and it stays there.",
+    "seconds": 23.496,
     "words": [
       {
         "word": "At",
         "start": 0,
-        "end": 0.2800000011920929
+        "end": 0.25999999046325684
       },
       {
         "word": "scale,",
-        "start": 0.2800000011920929,
-        "end": 1.0800000429153442
+        "start": 0.25999999046325684,
+        "end": 0.8600000143051147
       },
       {
         "word": "we",
-        "start": 1.0800000429153442,
-        "end": 1.159999966621399
+        "start": 0.8600000143051147,
+        "end": 0.9399999976158142
       },
       {
         "word": "ran",
-        "start": 1.159999966621399,
-        "end": 1.399999976158142
+        "start": 0.9399999976158142,
+        "end": 1.1799999475479126
       },
       {
         "word": "the",
-        "start": 1.399999976158142,
-        "end": 1.600000023841858
+        "start": 1.1799999475479126,
+        "end": 1.3600000143051147
       },
       {
         "word": "DAB",
-        "start": 1.600000023841858,
-        "end": 1.940000057220459
+        "start": 1.3600000143051147,
+        "end": 1.6799999475479126
       },
       {
-        "word": "step",
-        "start": 1.940000057220459,
-        "end": 2.1600000858306885
+        "word": "Step",
+        "start": 1.6799999475479126,
+        "end": 1.899999976158142
       },
       {
-        "word": "benchmark,",
-        "start": 2.1600000858306885,
-        "end": 3.440000057220459
+        "word": "Benchmark,",
+        "start": 1.899999976158142,
+        "end": 3.119999885559082
       },
       {
         "word": "450",
-        "start": 3.440000057220459,
-        "end": 4.159999847412109
+        "start": 3.119999885559082,
+        "end": 4.019999980926514
       },
       {
         "word": "real",
-        "start": 4.159999847412109,
-        "end": 4.699999809265137
+        "start": 4.019999980926514,
+        "end": 4.599999904632568
+      },
+      {
+        "word": "multi",
+        "start": 4.599999904632568,
+        "end": 4.940000057220459
+      },
+      {
+        "word": "-step",
+        "start": 4.940000057220459,
+        "end": 5.21999979019165
       },
       {
         "word": "data",
-        "start": 4.699999809265137,
-        "end": 5.039999961853027
+        "start": 5.21999979019165,
+        "end": 5.599999904632568
       },
       {
         "word": "investigations",
-        "start": 5.039999961853027,
-        "end": 5.840000152587891
+        "start": 5.599999904632568,
+        "end": 6.380000114440918
       },
       {
         "word": "over",
-        "start": 5.840000152587891,
-        "end": 6.340000152587891
-      },
-      {
-        "word": "audience",
-        "start": 6.340000152587891,
-        "end": 6.760000228881836
+        "start": 6.380000114440918,
+        "end": 6.78000020980835
       },
       {
         "word": "payments",
-        "start": 6.760000228881836,
-        "end": 7.21999979019165
+        "start": 6.78000020980835,
+        "end": 7.139999866485596
       },
       {
         "word": "data,",
-        "start": 7.21999979019165,
-        "end": 8.220000267028809
+        "start": 7.139999866485596,
+        "end": 8
       },
       {
         "word": "with",
-        "start": 8.220000267028809,
-        "end": 8.5
+        "start": 8,
+        "end": 8.239999771118164
       },
       {
         "word": "no",
-        "start": 8.5,
-        "end": 8.739999771118164
+        "start": 8.239999771118164,
+        "end": 8.479999542236328
       },
       {
-        "word": "memory,",
-        "start": 8.739999771118164,
-        "end": 9.640000343322754
+        "word": "code",
+        "start": 8.479999542236328,
+        "end": 8.779999732971191
+      },
+      {
+        "word": "stored",
+        "start": 8.779999732971191,
+        "end": 9.15999984741211
+      },
+      {
+        "word": "in",
+        "start": 9.15999984741211,
+        "end": 9.399999618530273
+      },
+      {
+        "word": "artifacts,",
+        "start": 9.399999618530273,
+        "end": 10.479999542236328
       },
       {
         "word": "both",
-        "start": 9.640000343322754,
-        "end": 9.800000190734863
+        "start": 10.479999542236328,
+        "end": 10.65999984741211
       },
       {
         "word": "arms",
-        "start": 9.800000190734863,
-        "end": 10.220000267028809
+        "start": 10.65999984741211,
+        "end": 11.079999923706055
       },
       {
         "word": "cost",
-        "start": 10.220000267028809,
-        "end": 10.539999961853027
+        "start": 11.079999923706055,
+        "end": 11.34000015258789
       },
       {
         "word": "the",
-        "start": 10.539999961853027,
-        "end": 10.800000190734863
+        "start": 11.34000015258789,
+        "end": 11.619999885559082
       },
       {
         "word": "same.",
-        "start": 10.800000190734863,
-        "end": 11.760000228881836
+        "start": 11.619999885559082,
+        "end": 12.460000038146973
       },
       {
-        "word": "As",
-        "start": 11.760000228881836,
-        "end": 12.039999961853027
+        "word": "However,",
+        "start": 12.460000038146973,
+        "end": 13.420000076293945
       },
       {
-        "word": "memory",
-        "start": 12.039999961853027,
-        "end": 12.319999694824219
+        "word": "as",
+        "start": 13.420000076293945,
+        "end": 13.539999961853027
       },
       {
-        "word": "fills,",
-        "start": 12.319999694824219,
-        "end": 13.260000228881836
+        "word": "code",
+        "start": 13.539999961853027,
+        "end": 13.819999694824219
       },
       {
-        "word": "the",
-        "start": 13.260000228881836,
-        "end": 13.359999656677246
-      },
-      {
-        "word": "median",
-        "start": 13.359999656677246,
-        "end": 13.680000305175781
-      },
-      {
-        "word": "cost",
-        "start": 13.680000305175781,
-        "end": 14.0600004196167
-      },
-      {
-        "word": "per",
-        "start": 14.0600004196167,
-        "end": 14.399999618530273
-      },
-      {
-        "word": "task",
-        "start": 14.399999618530273,
-        "end": 14.739999771118164
-      },
-      {
-        "word": "drops",
-        "start": 14.739999771118164,
-        "end": 15.279999732971191
-      },
-      {
-        "word": "to",
-        "start": 15.279999732971191,
-        "end": 15.539999961853027
-      },
-      {
-        "word": "about",
-        "start": 15.539999961853027,
-        "end": 15.800000190734863
-      },
-      {
-        "word": "a",
-        "start": 15.800000190734863,
-        "end": 15.960000038146973
-      },
-      {
-        "word": "third",
-        "start": 15.960000038146973,
-        "end": 16.299999237060547
-      },
-      {
-        "word": "within",
-        "start": 16.299999237060547,
-        "end": 17.059999465942383
-      },
-      {
-        "word": "the",
-        "start": 17.059999465942383,
-        "end": 17.239999771118164
-      },
-      {
-        "word": "first",
-        "start": 17.239999771118164,
-        "end": 17.520000457763672
-      },
-      {
-        "word": "few",
-        "start": 17.520000457763672,
-        "end": 17.81999969482422
-      },
-      {
-        "word": "dozen",
-        "start": 17.81999969482422,
-        "end": 18.1200008392334
-      },
-      {
-        "word": "tasks,",
-        "start": 18.1200008392334,
-        "end": 19.200000762939453
+        "word": "mode",
+        "start": 13.819999694824219,
+        "end": 14.140000343322754
       },
       {
         "word": "and",
-        "start": 19.200000762939453,
-        "end": 19.31999969482422
+        "start": 14.140000343322754,
+        "end": 14.420000076293945
+      },
+      {
+        "word": "vectorize",
+        "start": 14.420000076293945,
+        "end": 15.079999923706055
+      },
+      {
+        "word": "index",
+        "start": 15.079999923706055,
+        "end": 15.359999656677246
+      },
+      {
+        "word": "more",
+        "start": 15.359999656677246,
+        "end": 15.640000343322754
+      },
+      {
+        "word": "programs,",
+        "start": 15.640000343322754,
+        "end": 16.799999237060547
+      },
+      {
+        "word": "the",
+        "start": 16.799999237060547,
+        "end": 16.860000610351562
+      },
+      {
+        "word": "median",
+        "start": 16.860000610351562,
+        "end": 17.200000762939453
+      },
+      {
+        "word": "cost",
+        "start": 17.200000762939453,
+        "end": 17.579999923706055
+      },
+      {
+        "word": "per",
+        "start": 17.579999923706055,
+        "end": 17.8799991607666
+      },
+      {
+        "word": "task",
+        "start": 17.8799991607666,
+        "end": 18.200000762939453
+      },
+      {
+        "word": "drops",
+        "start": 18.200000762939453,
+        "end": 18.65999984741211
+      },
+      {
+        "word": "to",
+        "start": 18.65999984741211,
+        "end": 18.920000076293945
+      },
+      {
+        "word": "about",
+        "start": 18.920000076293945,
+        "end": 19.15999984741211
+      },
+      {
+        "word": "a",
+        "start": 19.15999984741211,
+        "end": 19.299999237060547
+      },
+      {
+        "word": "third",
+        "start": 19.299999237060547,
+        "end": 19.639999389648438
+      },
+      {
+        "word": "within",
+        "start": 19.639999389648438,
+        "end": 20.31999969482422
+      },
+      {
+        "word": "the",
+        "start": 20.31999969482422,
+        "end": 20.5
+      },
+      {
+        "word": "first",
+        "start": 20.5,
+        "end": 20.799999237060547
+      },
+      {
+        "word": "few",
+        "start": 20.799999237060547,
+        "end": 21.100000381469727
+      },
+      {
+        "word": "dozen",
+        "start": 21.100000381469727,
+        "end": 21.440000534057617
+      },
+      {
+        "word": "tasks,",
+        "start": 21.440000534057617,
+        "end": 22.479999542236328
+      },
+      {
+        "word": "and",
+        "start": 22.479999542236328,
+        "end": 22.600000381469727
       },
       {
         "word": "it",
-        "start": 19.31999969482422,
-        "end": 19.459999084472656
+        "start": 22.600000381469727,
+        "end": 22.700000762939453
       },
       {
         "word": "stays",
-        "start": 19.459999084472656,
-        "end": 19.780000686645508
+        "start": 22.700000762939453,
+        "end": 23
       },
       {
         "word": "there.",
-        "start": 19.780000686645508,
-        "end": 20.219999313354492
+        "start": 23,
+        "end": 23.459999084472656
       }
     ]
   },
@@ -2681,6 +2741,502 @@
     ],
     "text": "We also learned what kind of memory works. Our first version distilled runs into a shared library of verified skills. One wrong skill spread to every agent that used it. Raw runs, labeled unverified, worked better, because each agent still runs its own code."
   },
+  "next-steps": {
+    "file": "voiceover/next-steps.mp3",
+    "hash": "e45efdc013161d78",
+    "text": "What's next. Today, a run becomes memory when it produces an answer. Next, we'll record whether that answer was right, as a git note on the commit, so agents learn from the runs that worked. Artifacts events can index each run the moment it's pushed. And agents can review their own history between tasks.",
+    "seconds": 21.888,
+    "words": [
+      {
+        "word": "What's",
+        "start": 0,
+        "end": 0.6
+      },
+      {
+        "word": "next?",
+        "start": 0.6,
+        "end": 1.66
+      },
+      {
+        "word": "Today",
+        "start": 1.66,
+        "end": 2.06
+      },
+      {
+        "word": "a",
+        "start": 2.06,
+        "end": 2.68
+      },
+      {
+        "word": "run",
+        "start": 2.68,
+        "end": 2.92
+      },
+      {
+        "word": "becomes",
+        "start": 2.92,
+        "end": 3.32
+      },
+      {
+        "word": "memory",
+        "start": 3.32,
+        "end": 3.9
+      },
+      {
+        "word": "when",
+        "start": 3.9,
+        "end": 4.18
+      },
+      {
+        "word": "it",
+        "start": 4.18,
+        "end": 4.3
+      },
+      {
+        "word": "produces",
+        "start": 4.3,
+        "end": 4.74
+      },
+      {
+        "word": "an",
+        "start": 4.74,
+        "end": 4.98
+      },
+      {
+        "word": "answer.",
+        "start": 4.98,
+        "end": 5.9
+      },
+      {
+        "word": "Next",
+        "start": 5.9,
+        "end": 6.24
+      },
+      {
+        "word": "will",
+        "start": 6.24,
+        "end": 6.8
+      },
+      {
+        "word": "record",
+        "start": 6.8,
+        "end": 7.18
+      },
+      {
+        "word": "whether",
+        "start": 7.18,
+        "end": 7.58
+      },
+      {
+        "word": "that",
+        "start": 7.58,
+        "end": 7.78
+      },
+      {
+        "word": "answer",
+        "start": 7.78,
+        "end": 8.14
+      },
+      {
+        "word": "was",
+        "start": 8.14,
+        "end": 8.36
+      },
+      {
+        "word": "right",
+        "start": 8.36,
+        "end": 8.62
+      },
+      {
+        "word": "as",
+        "start": 8.62,
+        "end": 9.4
+      },
+      {
+        "word": "a",
+        "start": 9.4,
+        "end": 9.52
+      },
+      {
+        "word": "get",
+        "start": 9.52,
+        "end": 9.7
+      },
+      {
+        "word": "note",
+        "start": 9.7,
+        "end": 10.02
+      },
+      {
+        "word": "on",
+        "start": 10.02,
+        "end": 10.32
+      },
+      {
+        "word": "the",
+        "start": 10.32,
+        "end": 10.46
+      },
+      {
+        "word": "commit",
+        "start": 10.46,
+        "end": 10.74
+      },
+      {
+        "word": "so",
+        "start": 10.74,
+        "end": 11.34
+      },
+      {
+        "word": "agents",
+        "start": 11.34,
+        "end": 11.72
+      },
+      {
+        "word": "learn",
+        "start": 11.72,
+        "end": 12.1
+      },
+      {
+        "word": "from",
+        "start": 12.1,
+        "end": 12.38
+      },
+      {
+        "word": "the",
+        "start": 12.38,
+        "end": 12.54
+      },
+      {
+        "word": "runs",
+        "start": 12.54,
+        "end": 12.74
+      },
+      {
+        "word": "that",
+        "start": 12.96,
+        "end": 13.02
+      },
+      {
+        "word": "worked.",
+        "start": 13.02,
+        "end": 13.96
+      },
+      {
+        "word": "Artifacts",
+        "start": 13.96,
+        "end": 14.46
+      },
+      {
+        "word": "events",
+        "start": 14.46,
+        "end": 14.84
+      },
+      {
+        "word": "can",
+        "start": 14.84,
+        "end": 15.5
+      },
+      {
+        "word": "index",
+        "start": 15.5,
+        "end": 15.96
+      },
+      {
+        "word": "each",
+        "start": 15.96,
+        "end": 16.36
+      },
+      {
+        "word": "run",
+        "start": 16.36,
+        "end": 16.76
+      },
+      {
+        "word": "the",
+        "start": 16.76,
+        "end": 17.18
+      },
+      {
+        "word": "moment",
+        "start": 17.18,
+        "end": 17.48
+      },
+      {
+        "word": "it's",
+        "start": 17.48,
+        "end": 17.82
+      },
+      {
+        "word": "pushed",
+        "start": 17.82,
+        "end": 18.16
+      },
+      {
+        "word": "and",
+        "start": 18.16,
+        "end": 18.82
+      },
+      {
+        "word": "agents",
+        "start": 18.82,
+        "end": 19.2
+      },
+      {
+        "word": "can",
+        "start": 19.2,
+        "end": 19.54
+      },
+      {
+        "word": "review",
+        "start": 19.68,
+        "end": 19.84
+      },
+      {
+        "word": "their",
+        "start": 19.84,
+        "end": 20.12
+      },
+      {
+        "word": "own",
+        "start": 20.12,
+        "end": 20.32
+      },
+      {
+        "word": "history",
+        "start": 20.32,
+        "end": 20.74
+      },
+      {
+        "word": "between",
+        "start": 20.74,
+        "end": 21.16
+      },
+      {
+        "word": "tasks.",
+        "start": 21.16,
+        "end": 21.86
+      }
+    ]
+  },
+  "new-worker": {
+    "file": "voiceover/new-worker.mp3",
+    "hash": "db52d1127c0cb094",
+    "text": "Getting started takes about a minute. Create a Worker with the cf CLI, and install Code Mode and codemode-git. Add the connector and three bindings: Artifacts, a Worker Loader, and a Durable Object. A dry run shows everything wired up.",
+    "seconds": 16.488,
+    "words": [
+      {
+        "word": "Getting",
+        "start": 0,
+        "end": 0.30000001192092896
+      },
+      {
+        "word": "started",
+        "start": 0.30000001192092896,
+        "end": 0.6600000262260437
+      },
+      {
+        "word": "takes",
+        "start": 0.6600000262260437,
+        "end": 0.9800000190734863
+      },
+      {
+        "word": "about",
+        "start": 0.9800000190734863,
+        "end": 1.2799999713897705
+      },
+      {
+        "word": "a",
+        "start": 1.2799999713897705,
+        "end": 1.3799999952316284
+      },
+      {
+        "word": "minute.",
+        "start": 1.3799999952316284,
+        "end": 2.240000009536743
+      },
+      {
+        "word": "Create",
+        "start": 2.240000009536743,
+        "end": 2.440000057220459
+      },
+      {
+        "word": "a",
+        "start": 2.440000057220459,
+        "end": 2.640000104904175
+      },
+      {
+        "word": "worker",
+        "start": 2.640000104904175,
+        "end": 2.940000057220459
+      },
+      {
+        "word": "with",
+        "start": 2.940000057220459,
+        "end": 3.200000047683716
+      },
+      {
+        "word": "the",
+        "start": 3.200000047683716,
+        "end": 3.359999895095825
+      },
+      {
+        "word": "CF",
+        "start": 3.359999895095825,
+        "end": 3.640000104904175
+      },
+      {
+        "word": "CLI",
+        "start": 3.640000104904175,
+        "end": 4.340000152587891
+      },
+      {
+        "word": "and",
+        "start": 4.340000152587891,
+        "end": 4.840000152587891
+      },
+      {
+        "word": "install",
+        "start": 4.840000152587891,
+        "end": 5.179999828338623
+      },
+      {
+        "word": "Code",
+        "start": 5.179999828338623,
+        "end": 5.599999904632568
+      },
+      {
+        "word": "Mode",
+        "start": 5.599999904632568,
+        "end": 5.880000114440918
+      },
+      {
+        "word": "and",
+        "start": 5.880000114440918,
+        "end": 6.260000228881836
+      },
+      {
+        "word": "Code",
+        "start": 6.260000228881836,
+        "end": 6.579999923706055
+      },
+      {
+        "word": "Mode",
+        "start": 6.579999923706055,
+        "end": 6.900000095367432
+      },
+      {
+        "word": "Git.",
+        "start": 6.900000095367432,
+        "end": 7.960000038146973
+      },
+      {
+        "word": "Add",
+        "start": 7.960000038146973,
+        "end": 8.079999923706055
+      },
+      {
+        "word": "the",
+        "start": 8.079999923706055,
+        "end": 8.239999771118164
+      },
+      {
+        "word": "connector",
+        "start": 8.239999771118164,
+        "end": 8.619999885559082
+      },
+      {
+        "word": "and",
+        "start": 8.619999885559082,
+        "end": 8.920000076293945
+      },
+      {
+        "word": "pre",
+        "start": 8.920000076293945,
+        "end": 9.100000381469727
+      },
+      {
+        "word": "-bindings,",
+        "start": 9.100000381469727,
+        "end": 10.260000228881836
+      },
+      {
+        "word": "Artifacts,",
+        "start": 10.260000228881836,
+        "end": 11.239999771118164
+      },
+      {
+        "word": "a",
+        "start": 11.239999771118164,
+        "end": 11.300000190734863
+      },
+      {
+        "word": "worker",
+        "start": 11.300000190734863,
+        "end": 11.579999923706055
+      },
+      {
+        "word": "loader,",
+        "start": 11.579999923706055,
+        "end": 12.34000015258789
+      },
+      {
+        "word": "and",
+        "start": 12.34000015258789,
+        "end": 12.579999923706055
+      },
+      {
+        "word": "a",
+        "start": 12.579999923706055,
+        "end": 12.680000305175781
+      },
+      {
+        "word": "durable",
+        "start": 12.680000305175781,
+        "end": 12.979999542236328
+      },
+      {
+        "word": "object.",
+        "start": 12.979999542236328,
+        "end": 14.279999732971191
+      },
+      {
+        "word": "A",
+        "start": 14.279999732971191,
+        "end": 14.380000114440918
+      },
+      {
+        "word": "dry",
+        "start": 14.380000114440918,
+        "end": 14.600000381469727
+      },
+      {
+        "word": "run",
+        "start": 14.600000381469727,
+        "end": 14.84000015258789
+      },
+      {
+        "word": "shows",
+        "start": 14.84000015258789,
+        "end": 15.119999885559082
+      },
+      {
+        "word": "everything",
+        "start": 15.119999885559082,
+        "end": 15.65999984741211
+      },
+      {
+        "word": "wired",
+        "start": 15.65999984741211,
+        "end": 16.020000457763672
+      },
+      {
+        "word": "up.",
+        "start": 16.020000457763672,
+        "end": 16.459999084472656
+      }
+    ]
+  },
   "close": {
     "file": "voiceover/close.mp3",
     "hash": "4189b14a9278e2da",
@@ -2786,6 +3342,59 @@
         "word": "time.",
         "start": 7.179999828338623,
         "end": 7.679999828338623
+      }
+    ]
+  },
+  "credits": {
+    "file": "voiceover/credits.mp3",
+    "hash": "9cfeae5596cc48c7",
+    "text": "Built by Clay Smith, on Cloudflare. Thanks for watching.",
+    "seconds": 3.888,
+    "words": [
+      {
+        "word": "Built",
+        "start": 0,
+        "end": 0.2800000011920929
+      },
+      {
+        "word": "by",
+        "start": 0.2800000011920929,
+        "end": 0.5199999809265137
+      },
+      {
+        "word": "Clay",
+        "start": 0.5199999809265137,
+        "end": 0.7400000095367432
+      },
+      {
+        "word": "Smith",
+        "start": 0.7400000095367432,
+        "end": 1.0399999618530273
+      },
+      {
+        "word": "on",
+        "start": 1.0399999618530273,
+        "end": 1.6200000047683716
+      },
+      {
+        "word": "Cloudflare.",
+        "start": 1.6200000047683716,
+        "end": 2.7799999713897705
+      },
+      {
+        "word": "Thanks",
+        "start": 2.7799999713897705,
+        "end": 3.200000047683716
+      },
+      {
+        "word": "for",
+        "start": 3.200000047683716,
+        "end": 3.380000114440918
+      },
+      {
+        "word": "watching.",
+        "start": 3.380000114440918,
+        "end": 3.859999895095825
       }
     ]
   }

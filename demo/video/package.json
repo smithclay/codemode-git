@@ -8,7 +8,8 @@
     "voiceover": "node scripts/voiceover.mjs",
     "studio": "remotion studio",
     "render": "remotion render Demo out/demo.mp4",
-    "typecheck": "tsc -p . && tsc -p worker"
+    "typecheck": "tsc -p . && tsc -p worker",
+    "record": "node scripts/record.mjs new-worker"
   },
   "dependencies": {
     "@remotion/cli": "4.0.532",

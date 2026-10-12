@@ -25,9 +25,13 @@ export type Visual =
   | "curve"
   | "accuracy"
   | "contagion"
-  | "close";
+  | "next-steps"
+  | "new-worker"
+  | "close"
+  | "credits";
 
-export type Scene = { id: string; visual: Visual; minSeconds?: number };
+// `extraHold` lengthens a scene past its voiceover, e.g. for credits.
+export type Scene = { id: string; visual: Visual; minSeconds?: number; extraHold?: number };
 
 export const SPEAKER = "orion";
 
@@ -42,7 +46,7 @@ export const HOLD = 0.6;
  * shouldn't pad with silence.
  */
 export function sceneSeconds(scene: Scene, voiceSeconds: number | undefined, hasClip: boolean): number {
-  const voiced = LEAD_IN + (voiceSeconds ?? 8) + HOLD;
+  const voiced = LEAD_IN + (voiceSeconds ?? 8) + HOLD + (scene.extraHold ?? 0);
   return hasClip ? Math.max(voiced, scene.minSeconds ?? 0) : voiced;
 }
 
@@ -61,5 +65,8 @@ export const scenes: Scene[] = [
   { id: "curve", visual: "curve" },
   { id: "accuracy", visual: "accuracy" },
   { id: "contagion", visual: "contagion" },
-  { id: "close", visual: "close" }
+  { id: "next-steps", visual: "next-steps" },
+  { id: "new-worker", visual: "new-worker", minSeconds: 40 },
+  { id: "close", visual: "close" },
+  { id: "credits", visual: "credits", extraHold: 5 }
 ];

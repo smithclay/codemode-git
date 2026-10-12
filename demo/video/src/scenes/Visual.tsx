@@ -25,7 +25,10 @@ export function Visual({ visual, cue }: { visual: VisualKind; cue: Cue }) {
     curve: () => <Curve cue={cue} />,
     accuracy: () => <Accuracy cue={cue} />,
     contagion: () => <Contagion cue={cue} />,
-    close: () => <Close cue={cue} />
+    "next-steps": () => <NextSteps cue={cue} />,
+    "new-worker": () => <NewWorker />,
+    close: () => <Close cue={cue} />,
+    credits: () => <Credits />
   };
   return <AbsoluteFill>{scenes[visual]()}</AbsoluteFill>;
 }
@@ -684,6 +687,92 @@ function Close({ cue }: { cue: Cue }) {
         <Label x={960} y={620} size={88} color={theme.amber} weight={800}>Keep the code.</Label>
         <Label x={960} y={700} size={40} color={theme.text} weight={500}>Your Workers get smarter over time.</Label>
       </g>
+    </Canvas>
+  );
+}
+
+function NextSteps({ cue }: { cue: Cue }) {
+  const steps = [
+    { glyph: "✓", title: "Record outcomes", sub: "a git note on each commit", at: cue("right,", 4) },
+    { glyph: "⚡", title: "Index on push", sub: "Artifacts events", at: cue("Artifacts events", 9) },
+    { glyph: "↺", title: "Learn between tasks", sub: "agents review their history", at: cue("review", 13) }
+  ];
+  const w = 470, gap = 70, x0 = (1920 - (3 * w + 2 * gap)) / 2;
+  return (
+    <Canvas>
+      <Kicker p={useIn(0.2)}>NEXT STEPS</Kicker>
+      {steps.map((st, i) => {
+        const x = x0 + i * (w + gap);
+        const p = useIn(st.at - 0.4);
+        return (
+          <g key={st.title} opacity={p} transform={`translate(0 ${(1 - p) * 30})`}>
+            <rect x={x} y={330} width={w} height={360} rx={22} fill={theme.panel} stroke={i === 0 ? theme.orange : theme.border} strokeWidth={2.5} />
+            <Label x={x + w / 2} y={440} size={96} color={theme.amber}>{st.glyph}</Label>
+            <Label x={x + w / 2} y={560} size={40} weight={700}>{st.title}</Label>
+            <Label x={x + w / 2} y={620} size={26} color={theme.muted} weight={400}>{st.sub}</Label>
+          </g>
+        );
+      })}
+    </Canvas>
+  );
+}
+
+// Shown only when public/clips/new-worker.mp4 is missing (npm run record).
+function NewWorker() {
+  const t = useSeconds();
+  const lines = [
+    "$ npx cf init lava-agent",
+    "$ npm install @cloudflare/codemode @smithclay/codemode-git",
+    "  + GitHistoryConnector, ARTIFACTS, LOADER, AGENT",
+    "$ npx cf deploy --dry-run"
+  ];
+  return (
+    <Canvas>
+      <Kicker>A NEW WORKER, WITH CODE MEMORY</Kicker>
+      <rect x={160} y={240} width={1600} height={480} rx={18} fill={theme.panel} stroke={theme.border} strokeWidth={2} />
+      {lines.map((l, i) => (
+        <Label key={i} x={210} y={320 + i * 100} size={32} anchor="start" mono weight={400} color={l.startsWith("$") ? theme.green : theme.amber} opacity={ramp(t, 0.5 + i * 1.2, 0.9 + i * 1.2)}>
+          {l}
+        </Label>
+      ))}
+    </Canvas>
+  );
+}
+
+function Credits() {
+  const columns = [
+    {
+      title: "Code",
+      items: ["Cloudflare Workers", "Code Mode (@cloudflare/codemode)", "Cloudflare Artifacts", "Durable Objects", "Worker Loader", "Workers AI", "Vectorize", "isomorphic-git", "cf CLI", "TypeScript · Vitest"]
+    },
+    {
+      title: "Benchmark",
+      items: ["DABstep by Adyen (CC BY 4.0)", "GLM-5.3 Flash on Workers AI", "Qwen3 Embedding on Workers AI"]
+    },
+    {
+      title: "Presentation",
+      items: ["Remotion", "Deepgram Aura-2 on Workers AI", "Whisper on Workers AI", "VHS by Charm", "ffmpeg", "Claude Code"]
+    }
+  ];
+  return (
+    <Canvas>
+      <LavaWall opacity={0.1} top={700} rows={3} />
+      <Label x={960} y={150} size={30} color={theme.muted} weight={500} opacity={useIn(0.2)}>built by</Label>
+      <Label x={960} y={220} size={84} weight={800} opacity={useIn(0.4)}>Clay Smith</Label>
+      <Label x={960} y={300} size={26} color={theme.orange} weight={700} opacity={useIn(0.9)}>TECH STACK CREDITS</Label>
+      {columns.map((col, c) => {
+        const x = 330 + c * 630;
+        const p = useIn(1.2 + c * 0.4);
+        return (
+          <g key={col.title} opacity={p}>
+            <Label x={x} y={380} size={32} weight={700} color={theme.amber}>{col.title}</Label>
+            {col.items.map((item, i) => (
+              <Label key={item} x={x} y={440 + i * 46} size={26} weight={400}>{item}</Label>
+            ))}
+          </g>
+        );
+      })}
+      <Label x={960} y={1010} size={24} color={theme.muted} weight={400} mono opacity={useIn(2.4)}>github.com/smithclay/codemode-git</Label>
     </Canvas>
   );
 }

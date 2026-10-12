@@ -17,7 +17,7 @@ What if Cloudflare Artifacts could make Code Mode in Workers self-improving? Eve
 
 ## hook
 
-We used an open source data analytics benchmark with the same four hundred and fifty tasks. Accuracy went from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. The only thing we added was memory.
+We used an open source data analytics benchmark with the same four hundred and fifty tasks. Accuracy went from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. The only thing we added was memory using Artifacts.
 
 ## vanish
 
@@ -58,7 +58,7 @@ Let's walk through an example: Cloudflare's wall of lava lamps. Agent Michelle a
 
 ## curve
 
-At scale, we ran the DABstep benchmark: four hundred and fifty real data investigations over Adyen's payments data. With no memory, both arms cost the same. As memory fills, the median cost per task drops to about a third, within the first few dozen tasks, and it stays there.
+At scale, we ran the DABstep benchmark: four hundred and fifty real multi-step data investigations over payments data. With no code stored in Artifacts, both arms cost the same. However, as Code Mode and Vectorize index more programs, the median cost per task drops to about a third, within the first few dozen tasks, and it stays there.
 
 ## accuracy
 
@@ -68,6 +68,18 @@ And they're not just cheaper. They're right more often. Scored by DABstep: forty
 
 We also learned what kind of memory works. Our first version distilled runs into a shared library of verified skills. One wrong skill spread to every agent that used it. Raw runs, labeled unverified, worked better, because each agent still runs its own code.
 
+## next-steps
+
+What's next. Today, a run becomes memory when it produces an answer. Next, we'll record whether that answer was right, as a git note on the commit, so agents learn from the runs that worked. Artifacts events can index each run the moment it's pushed. And agents can review their own history between tasks.
+
+## new-worker
+
+Getting started takes about a minute. Create a Worker with the cf CLI, and install Code Mode and codemode-git. Add the connector and three bindings: Artifacts, a Worker Loader, and a Durable Object. A dry run shows everything wired up.
+
 ## close
 
 It's on npm: three lines in any Code Mode agent. Keep the code, and your Workers get smarter over time.
+
+## credits
+
+Built by Clay Smith, on Cloudflare. Thanks for watching.

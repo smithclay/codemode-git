@@ -48,7 +48,10 @@ The video is code: [demo/video](demo/video). [transcript.md](demo/video/transcri
 | 12 | **Learning curve** | Median tokens by run position, baseline vs memory | Cold start, then about a third |
 | 13 | **Accuracy** | Overall 32.2 → 46.2, hard 23.5 → 38.6 | Right more often, not just cheaper |
 | 14 | **Which memory works** | A shared skill hub spreading red to every agent, vs independent raw runs | The skills finding |
-| 15 | **Close** | `npm install`, three lines of code, the tagline over the lava wall | Use it |
+| 15 | **Next steps** | Three cards: record outcomes (git notes), index on push (Artifacts events), learn between tasks | What's next |
+| 16 | **A new Worker** (≥40s) | VHS recording: `cf init` → install → connector and bindings → `cf deploy --dry-run` | How to start |
+| 17 | **Close** | `npm install`, three lines of code, the tagline over the lava wall | Use it |
+| 18 | **Credits** | Built by Clay Smith; tech stack credits for the code, benchmark and presentation | Exit slide |
 
 **Recording slots:** scenes 8, 9 and 11 show placeholders until a recording is added. To add one, put it at `demo/video/public/clips/<scene>.mp4` and add the scene id to `public/clips/index.json`. Without recordings the video runs about 3:45. The three recordings add about 80s, which brings it just over the 5-minute minimum; `npm run voiceover` prints the current runtime.
 

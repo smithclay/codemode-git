@@ -26,7 +26,7 @@
 
 ## Run of show (~5:15)
 
-The video is code: [demo/video](demo/video). [src/script.ts](demo/video/src/script.ts) holds every voiceover line, so treat it as the source of truth for the narration.
+The video is code: [demo/video](demo/video). [transcript.md](demo/video/transcript.md) holds every voiceover line, so treat it as the source of truth for the narration. Edit it and run `npm run voiceover`.
 
 **Style:** a keynote talk, not a slide deck. Each scene is one idea, shown as an animated diagram, often a before and after. On-screen text is a few words at most, the voiceover carries the detail, and animations are timed to the spoken word. Keep the technical depth (outbox, isomorphic-git, embeddings), because the audience is technical.
 
@@ -48,7 +48,7 @@ The video is code: [demo/video](demo/video). [src/script.ts](demo/video/src/scri
 | 14 | **Which memory works** | A shared skill hub spreading red to every agent, vs independent raw runs | The skills finding |
 | 15 | **Close** | `npm install`, three lines of code, the tagline over the lava wall | Use it |
 
-**Recording slots:** scenes 8, 9 and 11 show placeholders until a recording is added. To add one, put it at `demo/video/public/clips/<scene>.mp4` and add the scene id to `public/clips/index.json`. The slots keep the video above the 5-minute minimum.
+**Recording slots:** scenes 8, 9 and 11 show placeholders until a recording is added. To add one, put it at `demo/video/public/clips/<scene>.mp4` and add the scene id to `public/clips/index.json`. Without recordings the video runs about 3:45. The three recordings add about 80s, which brings it just over the 5-minute minimum; `npm run voiceover` prints the current runtime.
 
 ## The walkthrough (michelle → matthew)
 

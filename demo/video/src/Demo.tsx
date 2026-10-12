@@ -1,25 +1,20 @@
 import { AbsoluteFill, Audio, OffthreadVideo, Sequence, Series, staticFile, useCurrentFrame } from "remotion";
-import { scenes, type Scene } from "./script";
+import { LEAD_IN, sceneSeconds, scenes, type Scene } from "./script";
 import { theme } from "./theme";
 import { Visual } from "./scenes/Visual";
 
 export const FPS = 30;
-// Breathing room before each line and after it.
-export const LEAD_IN = 0.5;
-const HOLD = 1.6;
 
 export type Word = { word: string; start: number; end: number };
-export type Manifest = Record<string, { file: string; hash: string; seconds: number; words: Word[] }>;
+export type Manifest = Record<string, { file: string; hash: string; text: string; seconds: number; words: Word[] }>;
 export type DemoProps = { manifest: Manifest; clips: string[] };
 
-const estimate = (scene: Scene) => scene.voiceover.split(/\s+/).length / 2.6;
-
-export const sceneFrames = (scene: Scene, manifest: Manifest) =>
-  Math.ceil(Math.max(LEAD_IN + (manifest[scene.id]?.seconds ?? estimate(scene)) + HOLD, scene.minSeconds ?? 0) * FPS);
+export const sceneFrames = (scene: Scene, manifest: Manifest, clips: string[]) =>
+  Math.ceil(sceneSeconds(scene, manifest[scene.id]?.seconds, clips.includes(scene.id)) * FPS);
 
 /**
  * Seconds into the scene when a word is spoken, for syncing visuals to the
- * voiceover. Matches the script's words (case- and punctuation-insensitive),
+ * voiceover. Matches the transcript's words (case- and punctuation-insensitive),
  * falling back to `fallback` seconds before the voiceover exists.
  */
 export type Cue = (needle: string, fallback: number) => number;
@@ -36,8 +31,8 @@ function makeCue(words: Word[]): Cue {
   };
 }
 
-// Whisper's timings, but the script's words: Whisper mishears names like
-// "Cloudflare". Script word i takes the timing of the proportionally placed
+// Whisper's timings, but the transcript's words: Whisper mishears names like
+// "Cloudflare". Transcript word i takes the timing of the proportionally placed
 // Whisper word, which is exact when the counts match.
 function alignToScript(text: string, timed: Word[]): Word[] {
   const words = text.split(/\s+/).filter(Boolean);
@@ -53,10 +48,10 @@ export const Demo = ({ manifest, clips }: DemoProps) => (
     <Series>
       {scenes.map((scene) => {
         const voice = manifest[scene.id];
-        const words = voice ? alignToScript(scene.voiceover, voice.words) : [];
+        const words = voice ? alignToScript(voice.text, voice.words) : [];
         const clip = clips.includes(scene.id) ? staticFile(`clips/${scene.id}.mp4`) : null;
         return (
-          <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, manifest)} name={scene.id}>
+          <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, manifest, clips)} name={scene.id}>
             {clip ? (
               <AbsoluteFill style={{ padding: 60 }}>
                 <OffthreadVideo src={clip} muted style={{ width: "100%", height: "100%", objectFit: "contain" }} />

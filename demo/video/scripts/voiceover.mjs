@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Generates the voiceover for every scene in src/script.ts with Workers AI:
+// Generates the voiceover for every scene with Workers AI, from the text in
+// transcript.md (one "## <scene id>" section per scene in src/script.ts):
 // Deepgram Aura-2 for speech, Whisper for word timings (captions).
 //
 // Two ways to reach Workers AI:
@@ -7,15 +8,16 @@
 //      terminal, which uses your cf login. Override with VOICE_URL.
 //   2. The REST API: set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
 //
-// Writes public/voiceover/<scene>.mp3 and public/voiceover/manifest.json.
-// A scene is regenerated only when its text or speaker changes.
+// Writes public/voiceover/<scene>.mp3 and public/voiceover/manifest.json
+// (with the text each clip was generated from, for captions). A scene is
+// regenerated only when its text or speaker changes.
 
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { scenes, SPEAKER } from "../src/script.ts";
+import { sceneSeconds, scenes, SPEAKER } from "../src/script.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "public/voiceover");
@@ -67,31 +69,74 @@ async function retry(label, fn) {
   }
 }
 
+// "## <id>" sections; HTML comments are dropped and lines joined.
+function readTranscript() {
+  const md = readFileSync(join(root, "transcript.md"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const sections = {};
+  let id = null;
+  for (const line of md.split("\n")) {
+    const heading = /^##\s+(\S+)\s*$/.exec(line);
+    if (heading) {
+      id = heading[1];
+      if (id in sections) throw new Error(`transcript.md: duplicate section "## ${id}"`);
+      sections[id] = [];
+    } else if (id) {
+      sections[id].push(line.trim());
+    }
+  }
+  const text = Object.fromEntries(Object.entries(sections).map(([k, lines]) => [k, lines.filter(Boolean).join(" ")]));
+  const ids = scenes.map((s) => s.id);
+  const missing = ids.filter((k) => !text[k]);
+  const extra = Object.keys(text).filter((k) => !ids.includes(k));
+  if (missing.length || extra.length) {
+    throw new Error(
+      `transcript.md doesn't match src/script.ts.` +
+        (missing.length ? ` Missing or empty: ${missing.join(", ")}.` : "") +
+        (extra.length ? ` Unknown sections: ${extra.join(", ")}.` : "")
+    );
+  }
+  return text;
+}
+
 const duration = (file) =>
   Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).toString().trim());
 
+const transcript = readTranscript();
 const previous = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : {};
 const manifest = {};
 let generated = 0;
 for (const scene of scenes) {
-  const hash = createHash("sha256").update(`${SPEAKER}\n${scene.voiceover}`).digest("hex").slice(0, 16);
+  const text = transcript[scene.id];
+  const hash = createHash("sha256").update(`${SPEAKER}\n${text}`).digest("hex").slice(0, 16);
   const file = `voiceover/${scene.id}.mp3`;
   const path = join(root, "public", file);
   if (previous[scene.id]?.hash === hash && existsSync(path)) {
-    manifest[scene.id] = previous[scene.id];
+    manifest[scene.id] = { ...previous[scene.id], text };
     continue;
   }
-  process.stderr.write(`${scene.id}: speaking ${scene.voiceover.length} chars… `);
-  const audio = await retry("tts", () => speak(scene.voiceover));
+  process.stderr.write(`${scene.id}: speaking ${text.length} chars… `);
+  const audio = await retry("tts", () => speak(text));
   writeFileSync(path, audio);
   const words = (await retry("transcribe", () => transcribe(audio))).map((w) => ({ word: w.word, start: w.start, end: w.end }));
-  manifest[scene.id] = { file, hash, seconds: duration(path), words };
+  manifest[scene.id] = { file, hash, text, seconds: duration(path), words };
   generated++;
   // Save progress, so a failure later doesn't lose this scene.
   writeFileSync(manifestPath, JSON.stringify({ ...previous, ...manifest }, null, 2) + "\n");
   process.stderr.write(`${manifest[scene.id].seconds.toFixed(1)}s\n`);
 }
 writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
-const total = Object.values(manifest).reduce((s, m) => s + m.seconds, 0);
-const chars = scenes.reduce((s, sc) => s + sc.voiceover.length, 0);
-console.log(`${generated} scene(s) generated, ${scenes.length - generated} cached. Voiceover ${total.toFixed(1)}s total, ${chars} chars (~$${((chars / 1000) * 0.03).toFixed(2)} at Aura-2 pricing for a full regeneration).`);
+const chars = Object.values(transcript).reduce((s, t) => s + t.length, 0);
+console.log(`${generated} scene(s) generated, ${scenes.length - generated} cached. ${chars} chars (~$${((chars / 1000) * 0.03).toFixed(2)} at Aura-2 pricing for a full regeneration).\n`);
+
+// Runtime report: what the composition will use, scene by scene.
+const clipsPath = join(root, "public/clips/index.json");
+const clips = existsSync(clipsPath) ? JSON.parse(readFileSync(clipsPath, "utf8")) : [];
+const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
+let runtime = 0;
+for (const scene of scenes) {
+  const seconds = sceneSeconds(scene, manifest[scene.id].seconds, clips.includes(scene.id));
+  const slot = scene.minSeconds ? (clips.includes(scene.id) ? `  recording (${scene.minSeconds}s)` : `  recording slot empty (+${Math.max(0, scene.minSeconds - seconds).toFixed(0)}s when filled)`) : "";
+  console.log(`${fmt(runtime).padStart(5)}  ${scene.id.padEnd(16)} ${seconds.toFixed(1).padStart(5)}s${slot}`);
+  runtime += seconds;
+}
+console.log(`\nRuntime ${fmt(runtime)}.` + (runtime < 300 ? ` Under the 5:00 minimum by ${Math.ceil(300 - runtime)}s; filling the recording slots adds time.` : ""));

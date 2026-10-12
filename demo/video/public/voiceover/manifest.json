@@ -164,7 +164,8 @@
         "start": 12.15999984741211,
         "end": 12.720000267028809
       }
-    ]
+    ],
+    "text": "What if Cloudflare Artifacts could make Code Mode self-improving? Every Code Mode run is a program. Keep every program, and let the next agent learn from it. That's codemode-git."
   },
   "hook": {
     "file": "voiceover/hook.mp3",
@@ -336,7 +337,8 @@
         "start": 16.260000228881836,
         "end": 16.920000076293945
       }
-    ]
+    ],
+    "text": "We tried it. Same model. Same prompt. Same four hundred and fifty tasks. Accuracy went from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. The only thing we added was memory."
   },
   "vanish": {
     "file": "voiceover/vanish.mp3",
@@ -488,7 +490,8 @@
         "start": 11.020000457763672,
         "end": 11.760000228881836
       }
-    ]
+    ],
+    "text": "Today, every agent starts from zero. It writes code, runs it, gets an answer, and the code is gone. A thousand agents solve the same problem a thousand times."
   },
   "code-mode": {
     "file": "voiceover/code-mode.mp3",
@@ -755,7 +758,8 @@
         "start": 19.799999237060547,
         "end": 20.34000015258789
       }
-    ]
+    ],
+    "text": "Some context. With Cloudflare's Code Mode, agents don't call tools one at a time, sending every result back through the model. They write one program against the tools, a compact plan, and run it in a fresh isolate. That program is a complete record of how the agent solved the problem."
   },
   "gap": {
     "file": "voiceover/gap.mp3",
@@ -837,7 +841,8 @@
         "start": 3.9200000762939453,
         "end": 4.199999809265137
       }
-    ]
+    ],
+    "text": "But the isolate is thrown away after every run, and the plan goes with it."
   },
   "memory": {
     "file": "voiceover/memory.mp3",
@@ -1054,7 +1059,8 @@
         "start": 17.84000015258789,
         "end": 18.360000610351562
       }
-    ]
+    ],
+    "text": "So we keep it. Every execution becomes a commit on that agent's own Cloudflare Artifacts repo: the code, every tool call and its result, and the outcome. One repo per agent, and one writer per repo. Nothing to lock, nothing to merge."
   },
   "under-the-hood": {
     "file": "voiceover/under-the-hood.mp3",
@@ -1301,7 +1307,8 @@
         "start": 18.780000686645508,
         "end": 19.260000228881836
       }
-    ]
+    ],
+    "text": "Under the hood, a connector hooks the end of every execution. The run lands in a SQLite outbox inside the agent's Durable Object, and isomorphic-git pushes it to Artifacts, in order, and safely across restarts. Artifacts speaks Git, so any git client can read an agent's history."
   },
   "repo": {
     "file": "voiceover/repo.mp3",
@@ -1393,7 +1400,8 @@
         "start": 7.440000057220459,
         "end": 8.039999961853027
       }
-    ]
+    ],
+    "text": "Clone an agent's repo, and its log is the agent's trajectory: every attempt, every fix, every answer."
   },
   "scale": {
     "file": "voiceover/scale.mp3",
@@ -1515,7 +1523,8 @@
         "start": 6.820000171661377,
         "end": 7.320000171661377
       }
-    ]
+    ],
+    "text": "Artifacts is built for tens of millions of repos, so every agent gets its own, and they all write at the same time."
   },
   "recall": {
     "file": "voiceover/recall.mp3",
@@ -1737,7 +1746,8 @@
         "start": 18.54,
         "end": 19.08
       }
-    ]
+    ],
+    "text": "Then, the learning. When a run produces an answer, Workers AI embeds the question and the code into Vectorize. The next agent with a similar question starts from the closest runs, labeled unverified. And its own commit records exactly which memories it used."
   },
   "walkthrough": {
     "file": "voiceover/walkthrough.mp3",
@@ -1979,7 +1989,8 @@
         "start": 17.88,
         "end": 18.5
       }
-    ]
+    ],
+    "text": "Here it is on Cloudflare's wall of lava lamps. Agent Michelle asks how many lamps are flowing. With no memory, Michelle has to discover that the wall is paginated. Agent Matthew asks about the red lamps, starts from Michelle's run, and already knows to walk every page."
   },
   "curve": {
     "file": "voiceover/curve.mp3",
@@ -2211,7 +2222,8 @@
         "start": 19.65999984741211,
         "end": 20.18000030517578
       }
-    ]
+    ],
+    "text": "At scale, we ran DABstep: four hundred and fifty real data investigations over Adyen's payments data. With no memory, both arms cost the same. As memory fills, the median cost per task drops to about a third, within the first few dozen tasks, and it stays there."
   },
   "accuracy": {
     "file": "voiceover/accuracy.mp3",
@@ -2308,7 +2320,8 @@
         "start": 7.679999828338623,
         "end": 8.420000076293945
       }
-    ]
+    ],
+    "text": "And they're not just cheaper. They're right more often. Scored by Adyen: forty-six percent overall, up from thirty-two."
   },
   "contagion": {
     "file": "voiceover/contagion.mp3",
@@ -2535,7 +2548,8 @@
         "start": 17.420000076293945,
         "end": 17.940000534057617
       }
-    ]
+    ],
+    "text": "We also learned what kind of memory works. Our first version distilled runs into a shared library of verified skills. One wrong skill spread to every agent that used it. Raw runs, labeled unverified, worked better, because each agent still runs its own code."
   },
   "close": {
     "file": "voiceover/close.mp3",
@@ -2662,6 +2676,7 @@
         "start": 9.260000228881836,
         "end": 9.720000267028809
       }
-    ]
+    ],
+    "text": "It's on npm: three lines in any Code Mode agent, and a Deploy to Cloudflare button. Throw away the isolate. Keep the code."
   }
 }

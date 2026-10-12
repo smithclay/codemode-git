@@ -2,8 +2,8 @@ import { Composition, staticFile } from "remotion";
 import { Demo, FPS, sceneFrames, type DemoProps, type Manifest } from "./Demo";
 import { scenes } from "./script";
 
-// Scene lengths come from the generated voiceover; without it (before the
-// first `npm run voiceover`) they're estimated from word counts.
+// Scene lengths come from the generated voiceover; a scene without audio yet
+// gets a placeholder length.
 async function loadManifest(): Promise<Manifest> {
   try {
     const res = await fetch(staticFile("voiceover/manifest.json"));
@@ -34,7 +34,7 @@ export const RemotionRoot = () => (
     defaultProps={{ manifest: {}, clips: [] } as DemoProps}
     calculateMetadata={async () => {
       const [manifest, clips] = await Promise.all([loadManifest(), loadClips()]);
-      const durationInFrames = scenes.reduce((sum, scene) => sum + sceneFrames(scene, manifest), 0);
+      const durationInFrames = scenes.reduce((sum, scene) => sum + sceneFrames(scene, manifest, clips), 0);
       return { durationInFrames, props: { manifest, clips } };
     }}
   />

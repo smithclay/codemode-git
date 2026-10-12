@@ -1,0 +1,26 @@
+{
+  "name": "codemode-git-demo-video",
+  "private": true,
+  "type": "module",
+  "description": "Demo video for codemode-git: Remotion composition with a Workers AI voiceover (Deepgram Aura-2) and Whisper captions.",
+  "scripts": {
+    "tts-worker": "cf dev",
+    "voiceover": "node scripts/voiceover.mjs",
+    "studio": "remotion studio",
+    "render": "remotion render Demo out/demo.mp4",
+    "typecheck": "tsc -p . && tsc -p worker"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.532",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.532"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260901.1",
+    "@types/react": "^19.2.0",
+    "cf": "^1.0.0-beta.12",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.147.0"
+  }
+}

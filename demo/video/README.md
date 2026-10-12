@@ -19,4 +19,6 @@ To skip the local Worker, set `CLOUDFLARE_API_TOKEN` (with Workers AI access) an
 - Captions use the script's words with Whisper's timings, because Whisper mishears names like "Cloudflare".
 - Before the first voiceover run, scene lengths are estimated from word counts.
 
-**Cost:** a full regeneration of the voiceover is about 2,700 characters, roughly $0.08 at Aura-2's $0.03 per 1,000 characters. Whisper adds a fraction of a cent.
+**Cost:** a full regeneration of the voiceover is about 2,850 characters, roughly $0.09 at Aura-2's $0.03 per 1,000 characters. Whisper adds a fraction of a cent.
+
+**Recordings:** a scene shows `public/clips/<scene>.mp4` instead of its diagram when the scene id is listed in `public/clips/index.json`. Scenes with `minSeconds` in the script reserve time for one (the git log, the swarm, and the michelle → matthew run).

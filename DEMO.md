@@ -1,6 +1,6 @@
 # Demo video: draft script
 
-**Due:** Oct 14, 2026, 11:59 PM PDT. The video must be 5–10 min, in MP4, WebM or MOV, under 2 GiB. Target **8:00** so there's room to spare. Form answers are drafted in [docs/submission.md](docs/submission.md).
+**Due:** Oct 14, 2026, 11:59 PM PDT. The video must be 5–10 min, in MP4, WebM or MOV, under 2 GiB. Currently **~5:15**: the rules require 5–10 min. Form answers are drafted in [docs/submission.md](docs/submission.md).
 
 ## The one-two punch
 
@@ -21,18 +21,31 @@
 | Concurrency, coordination, context preservation, review, conflict handling | 25% | Context preservation is Phase 1. Concurrency: the swarm, with one writer per Artifacts repo and no conflicts. Coordination: retrieval plus provenance. Review: memory is shown as unverified, and every example links to its source |
 | Ease of use and product experience | 25% | Three lines in an existing Code Mode agent, `npm install`, the Deploy button |
 
-## Run of show (~8:00)
+## Run of show (~5:15)
 
-| Time | Beat | On screen | Voiceover (draft) |
+The video is code: [demo/video](demo/video). [src/script.ts](demo/video/src/script.ts) holds every voiceover line, so treat it as the source of truth for the narration.
+
+**Style:** a keynote talk, not a slide deck. Each scene is one idea, shown as an animated diagram, often a before and after. On-screen text is a few words at most, the voiceover carries the detail, and animations are timed to the spoken word. Keep the technical depth (outbox, isomorphic-git, embeddings), because the audience is technical.
+
+| # | Scene | Diagram | Point |
 |---|---|---|---|
-| 0:00–0:30 | **Cold open** | Cloudflare's lava lamp wall (LavaRand), then split screen. Agent michelle: "How many lava lamps on the wall are flowing right now?", taking [N] executions to work out that the wall is paginated. Agent matthew: "How many red lava lamps are flowing?", taking one execution | "Cloudflare's lobby has a wall of about a hundred lava lamps, and a camera turns the moving wax into randomness for encryption. Here are two Code Mode agents checking on that wall, with two similar questions. The first one figures it out the hard way. The second gets it right the first time, because it can read the code the first one wrote. This is codemode-git: code memory for Code Mode agents, on Cloudflare Artifacts." |
-| 0:30–1:30 | **Punch 1: why Code Mode** | Left: the same task as a chain of individual tool calls, each result going back through the model. Right: one function that walks every page of `lamps.wall` and returns a number | "Cloudflare's Code Mode insight: models are much better at writing code than at calling tools one at a time. They've seen millions of real programs. So instead of ten tool calls, the agent writes one function: loop over every page of the wall, filter, count, return. Cloudflare calls that code a compact plan." |
-| 1:30–2:00 | **The gap** | The isolate lifecycle: load → run → discard. The code fades out with it | "Each plan runs in a fresh isolate that's thrown away afterward, which is exactly right for the sandbox. But the plan goes too. The next agent with the same kind of question starts from zero." |
-| 2:00–3:15 | **Punch 2, Phase 1: code memory on Artifacts** | The three-line diff. michelle's Artifacts repo: `run.js`, `calls.jsonl`, `result.json`, with the `Codemode-*` trailers in the commit message. One shot of `git clone` | "Add one connector. Every execution is saved to that agent's own Cloudflare Artifacts repo: the code it ran, every tool call with its result, and the outcome. Artifacts gives every agent its own repo, at any scale. It speaks Git, so any git client can read it, but nobody has to. Agents read their own history back with two tools." |
-| 3:15–3:45 | **Memory at fleet scale** | `scripts/swarm.mjs` summary. Artifacts dashboard metrics | "[1,000] agents at once: [1,000] Durable Objects, each writing to its own Artifacts repo, [N] runs saved per second, zero conflicts. Each agent is the only writer to its repo, so there's nothing to lock and nothing to merge." |
-| 3:45–5:00 | **Phase 2: learning from code memory** | Diagram: saved run → Workers AI embedding of question + code → Vectorize. matthew's question → nearest runs → prompt, labeled unverified. matthew's commit with `Codemode-Examples: agent-michelle@<sha>`, then michelle's run it points to | "When a run produces an answer, Workers AI embeds the question and the code into Vectorize. matthew's question is similar to michelle's, so matthew starts with michelle's code, labeled unverified. matthew still writes and runs its own code, but already knows the wall is paginated. Its saved run records exactly which memory it used, so every answer traces back to the code that informed it." |
-| 5:00–6:50 | **Deep dive: the benchmark** | DABstep: 450 payments-analysis tasks from Adyen. Learning-curve chart. Official accuracy by level. Small table: code runs 13.8 → 9.4, step-limit exhaustion 13% → 7%, Workers AI spend $26.76. Then a two-column slide: distilled skills vs raw runs | "Does it hold up on real investigations? DABstep is 450 data-analysis tasks over Adyen's payments data, the kind of work Code Mode is built for. Same model, same prompt, scored by Adyen's official scorer. Accuracy goes from 32 to 46 percent, and from 23.5 to 38.6 on hard tasks. The curve shows the learning. For the first eight tasks there's no memory, and both arms cost the same. Within about 25 tasks, the memory arm's median cost falls to about a third of baseline and stays there. One more finding: we first distilled runs into verified, shared skills. That made agents wrong together, because one bad skill spread. Raw runs, labeled unverified, worked better." |
-| 6:50–8:00 | **Use it, what's next, close** | `npm install @smithclay/codemode-git`, the three lines, the Deploy to Cloudflare button. An architecture slide: Workers, Worker Loader, Durable Objects, Artifacts, Workers AI, Vectorize, cf CLI, Workers Builds. Closing line | "It's on npm. It's three lines in a Code Mode agent, plus a Deploy to Cloudflare button. Next: index runs as they're pushed, using Artifacts events, and record outcomes alongside the code. Code Mode made code the way agents act. Artifacts makes it the way they remember. Throw away the isolate. Keep the code." |
+| 1 | **Hook** | 32.2% → 46.2% counter. "Hard tasks: 23.5% → 38.6%". "+ memory" | Lead with the result: same model, same prompt |
+| 2 | **Title** | Lava lamp wall, then the name | codemode-git: code memory on Cloudflare Artifacts |
+| 3 | **Every agent starts from zero** | A grid of agents, each writing code that dissolves | The problem |
+| 4 | **Code Mode** | Before: model ⇄ tools ping-pong. After: one program in an isolate | Brief context; the code is the plan |
+| 5 | **The gap** | The isolate collapses, and the code falls away | The plan is thrown away |
+| 6 | **Phase 1: code memory** | Agents → their own Artifacts repos, with commits stacking up | 1 repo per agent, 1 writer per repo, 0 merges |
+| 7 | **Under the hood** | execution ends → Durable Object SQLite outbox → isomorphic-git → Artifacts | How the write path works |
+| 8 | **Every attempt, in git** (≥30s) | `git log` of an agent: error, fix, answer | Slot for a VHS recording |
+| 9 | **One repo per agent** (≥25s) | 1,000 squares lighting up | Slot for the swarm recording |
+| 10 | **Phase 2: learning** | michelle's repo → Workers AI → Vectorize → matthew. A provenance arrow back | Retrieval and `Codemode-Examples` |
+| 11 | **Lava lamp wall** (≥60s) | michelle and matthew lanes: runs ✓/✗ and token bars | Slot for the real `walkthrough.mjs` run |
+| 12 | **Learning curve** | Median tokens by run position, baseline vs memory | Cold start, then about a third |
+| 13 | **Accuracy** | Overall 32.2 → 46.2, hard 23.5 → 38.6 | Right more often, not just cheaper |
+| 14 | **Which memory works** | A shared skill hub spreading red to every agent, vs independent raw runs | The skills finding |
+| 15 | **Close** | `npm install`, three lines of code, the tagline over the lava wall | Use it |
+
+**Recording slots:** scenes 8, 9 and 11 show placeholders until a recording is added. To add one, put it at `demo/video/public/clips/<scene>.mp4` and add the scene id to `public/clips/index.json`. The slots keep the video above the 5-minute minimum.
 
 ## The walkthrough (michelle → matthew)
 

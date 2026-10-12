@@ -12,3 +12,11 @@ export const accuracy = [
   { level: "Hard (378)", baseline: 23.5, examples: 38.6 },
   { level: "Overall (450)", baseline: 32.2, examples: 46.2 }
 ];
+
+// michelle → matthew on the lava lamp wall. Illustrative until filled in from
+// a recorded run of examples/agent/scripts/walkthrough.mjs.
+export const walkthrough = {
+  illustrative: true,
+  michelle: { runs: ["error", "ok", "ok"] as ("error" | "ok")[], tokens: 3 },
+  matthew: { runs: ["ok"] as ("error" | "ok")[], tokens: 1 }
+};

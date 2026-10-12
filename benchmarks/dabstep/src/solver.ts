@@ -88,11 +88,9 @@ async () => { const { rows } = await data.sql({ query: "SELECT COUNT(*) AS n FRO
 You get back its return value or error. Repeat as needed. When you are confident, call \`final_answer\`.
 
 ## Sandbox
-The only globals are \`data\`, \`codemode\` and standard JavaScript. No fetch, no imports, no Node APIs.
+The only global you need is \`data\` (plus standard JavaScript; no fetch, no imports, no Node APIs). It has exactly two methods:
 - \`await data.sql({ query, params })\` runs one read-only SQLite query and returns \`{ rows }\` (max 5000 rows — aggregate in SQL).
-- \`await data.doc({ name })\` returns "manual.md" or "payments-readme.md" as text.
-- \`await codemode.search(query)\` / \`await codemode.describe(path)\` discover methods and saved snippets.
-- \`await codemode.run(name, input)\` runs a saved snippet.
+- \`await data.doc({ name })\` returns "manual.md" or "payments-readme.md" as text. Once read, the manual stays in this conversation; to look something up again, filter it in code instead of re-reading it whole.
 
 ${SCHEMA}
 
@@ -100,6 +98,7 @@ ${SCHEMA}
 - Read the manual before answering fee, fraud or volume questions; its definitions are authoritative.
 - Prefer computing in SQL. Return compact values from code, not raw tables.
 - Follow the answer guidelines exactly (format, rounding, units). If the question has no applicable answer, answer "Not Applicable".
+- final_answer takes only the answer value in the requested format: no explanation, markdown, units or currency unless the guidelines ask for them.
 ${examplesText(examples)}`;
 }
 
@@ -116,7 +115,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "final_answer",
-      description: "Submit the final answer, formatted exactly as the answer guidelines require.",
+      description: "Submit only the final answer value, formatted exactly as the answer guidelines require. No explanation or markdown.",
       parameters: { type: "object", properties: { answer: { type: "string" } }, required: ["answer"] }
     }
   }
@@ -194,6 +193,11 @@ export function actionsFrom(text: string, toolCalls: ToolCall[]): Action[] {
   const final = /FINAL ANSWER:\s*(.+)/i.exec(text);
   if (final) return [{ kind: "answer", answer: final[1]!.trim() }];
   return [];
+}
+
+/** Answers are scored by near-exact match; prose or markdown in one is always wrong. */
+export function malformedAnswer(answer: string): boolean {
+  return /\n|\*\*|```|^#/.test(answer.trim()) || answer.trim().length > 1000;
 }
 
 export function clip(value: unknown): string {
@@ -274,6 +278,8 @@ export class Solver extends DurableObject<Env> {
 
     // The execution whose result the final answer was based on: the last one that completed.
     let lastCompleted: string | undefined;
+    // One chance to fix a malformed final answer.
+    let reformatAsked = false;
 
     /** Reply to a tool call if there was one, else as a user turn. */
     const reply = (callId: string | undefined, content: string) =>
@@ -313,6 +319,11 @@ export class Solver extends DurableObject<Env> {
         if (action.kind === "answer") {
           if (result.executions === 0) {
             reply(action.callId, "Check against the data with code before giving a final answer.");
+            continue;
+          }
+          if (malformedAnswer(action.answer) && !reformatAsked) {
+            reformatAsked = true;
+            reply(action.callId, "Not recorded: submit only the answer value in the format the guidelines require, on one line, with no explanation or markdown.");
             continue;
           }
           result.answer = action.answer;

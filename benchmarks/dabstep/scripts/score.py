@@ -38,4 +38,12 @@ for path in sys.argv[1:]:
           f"{sum(r['errors'] for r in rows) / n:.1f} errors, "
           f"{sum(r['tokens']['input'] + r['tokens']['output'] for r in rows) / n:,.0f} tokens, "
           f"{sum(r['ms'] for r in rows) / n / 1000:.0f}s")
+    # A leaderboard submission must answer every test task exactly once.
+    if len(rows) > len(answers):
+        test_ids = {str(json.loads(l)["task_id"]) for l in (ROOT / "data/tasks/all.jsonl").read_text().splitlines() if l.strip()}
+        ids = [r["task_id"] for r in rows]
+        missing = sorted(test_ids - set(ids), key=int)
+        dupes = len(ids) - len(set(ids))
+        print(f"  coverage: {len(set(ids) & test_ids)}/{len(test_ids)} test tasks"
+              f"{f', MISSING {len(missing)}: {missing[:20]}' if missing else ''}{f', {dupes} duplicates' if dupes else ''}")
     print(f"  submission file: {sub}")

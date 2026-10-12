@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionsFrom, clip, parseArgs } from "../src/solver";
+import { actionsFrom, clip, malformedAnswer, parseArgs } from "../src/solver";
 
 const call = (name: string, args: unknown, id = "c1") => ({
   id,
@@ -38,5 +38,12 @@ describe("agent loop parsing", () => {
     expect(clip(undefined)).toBe("undefined");
     expect(clip("x".repeat(22_000))).toHaveLength(22_000);
     expect(clip("x".repeat(30_000))).toContain("truncated");
+  });
+
+  it("flags prose or markdown final answers, not normal ones", () => {
+    expect(malformedAnswer('**ACI "B"**\n\nReasoning: ...')).toBe(true);
+    expect(malformedAnswer("E:13.57")).toBe(false);
+    expect(malformedAnswer("36, 51, 53, 64")).toBe(false);
+    expect(malformedAnswer("Not Applicable")).toBe(false);
   });
 });

@@ -71,6 +71,9 @@ export const agentRepo = (run: string, key: string, arm: Arm) => `${run}-${arm}-
 
 // The manual is ~22k chars; agents must be able to read it whole.
 const MAX_FEEDBACK_CHARS = 24_000;
+// Data results (rows, objects) are capped lower: a big one is re-read on every
+// later step, and a summary computed in code is almost always what's needed.
+const MAX_DATA_RESULT_CHARS = 8_000;
 
 function examplesText(examples: Example[]): string {
   if (!examples.length) return "";
@@ -96,7 +99,7 @@ ${SCHEMA}
 
 ## Rules
 - Read the manual before answering fee, fraud or volume questions; its definitions are authoritative.
-- Prefer computing in SQL. Return compact values from code, not raw tables.
+- Keep results small: everything your code returns stays in this conversation and is re-read on every later step. Aggregate in SQL (COUNT, SUM, GROUP BY) or summarize in JavaScript, and return only what you need: a few numbers, a short list, or at most ~20 rows. To inspect data, return counts, distinct values or a 5-row sample, never whole tables.
 - Follow the answer guidelines exactly (format, rounding, units). If the question has no applicable answer, answer "Not Applicable".
 - final_answer takes only the answer value in the requested format: no explanation, markdown, units or currency unless the guidelines ask for them.
 ${examplesText(examples)}`;
@@ -198,6 +201,14 @@ export function actionsFrom(text: string, toolCalls: ToolCall[]): Action[] {
 /** Answers are scored by near-exact match; prose or markdown in one is always wrong. */
 export function malformedAnswer(answer: string): boolean {
   return /\n|\*\*|```|^#/.test(answer.trim()) || answer.trim().length > 1000;
+}
+
+/** A code result as fed back to the model: documents (strings) whole, data capped with a nudge to summarize. */
+export function clipResult(value: unknown): string {
+  if (typeof value === "string") return clip(value);
+  const text = JSON.stringify(value) ?? String(value);
+  if (text.length <= MAX_DATA_RESULT_CHARS) return text;
+  return `${text.slice(0, MAX_DATA_RESULT_CHARS)}… (truncated: ${text.length} chars. Return a smaller summary — aggregate in SQL or compute the answer in code.)`;
 }
 
 export function clip(value: unknown): string {
@@ -335,7 +346,7 @@ export class Solver extends DurableObject<Env> {
         if (outcome.status === "completed") {
           lastCompleted = outcome.executionId;
           const logs = outcome.logs?.length ? `\nLogs:\n${clip(outcome.logs.join("\n"))}` : "";
-          reply(action.callId, `Result:\n${clip(outcome.result)}${logs}`);
+          reply(action.callId, `Result:\n${clipResult(outcome.result)}${logs}`);
         } else {
           result.errors++;
           reply(action.callId, `Error:\n${clip("error" in outcome ? outcome.error : outcome.status)}`);

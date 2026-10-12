@@ -27,3 +27,6 @@ jobs:
         working-directory: examples/agent
       - run: npx cf deploy --prebuilt --mode production --dry-run
         working-directory: examples/agent
+      # wrangler.jsonc mirrors cloudflare.config.ts for the Deploy to Cloudflare button.
+      - run: npx wrangler deploy --dry-run
+        working-directory: examples/agent

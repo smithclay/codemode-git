@@ -143,7 +143,7 @@ git log --format='%h %s [%(trailers:key=Codemode-Status,valueonly)]'
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)
 
-The button copies `examples/agent` into a new repo on your GitHub or GitLab account and deploys it with Workers Builds. Create the Artifacts namespace first: the button doesn't provision Artifacts. Set `ADMIN_TOKEN` when it asks, because the Worker runs any code it's sent. The button doesn't document support for `cf` projects (`cloudflare.config.ts`) yet. If the build fails, deploy from the command line:
+The button copies `examples/agent` into a new repo on your GitHub or GitLab account and deploys it with Workers Builds. Create the Artifacts namespace first: the button doesn't provision Artifacts. Set `ADMIN_TOKEN` when it asks, because the Worker runs any code it's sent. The button only reads Wrangler config, so the example also has a `wrangler.jsonc` that mirrors `cloudflare.config.ts` (CI checks both). If the button fails, deploy from the command line:
 
 ```bash
 npx cf artifacts namespaces create --namespace codemode-git

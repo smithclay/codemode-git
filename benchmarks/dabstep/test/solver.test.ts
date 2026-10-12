@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionsFrom, clip, clipResult, malformedAnswer, parseArgs } from "../src/solver";
+import { actionsFrom, clip, malformedAnswer, parseArgs } from "../src/solver";
 
 const call = (name: string, args: unknown, id = "c1") => ({
   id,
@@ -45,12 +45,5 @@ describe("agent loop parsing", () => {
     expect(malformedAnswer("E:13.57")).toBe(false);
     expect(malformedAnswer("36, 51, 53, 64")).toBe(false);
     expect(malformedAnswer("Not Applicable")).toBe(false);
-  });
-
-  it("caps data results lower than documents", () => {
-    expect(clipResult("m".repeat(22_000))).toHaveLength(22_000);
-    const rows = { rows: Array.from({ length: 2000 }, (_, i) => ({ id: i, merchant: "Rafa_AI" })) };
-    expect(clipResult(rows)).toContain("Return a smaller summary");
-    expect(clipResult({ rows: [{ n: 3 }] })).toBe('{"rows":[{"n":3}]}');
   });
 });

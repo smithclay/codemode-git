@@ -131,4 +131,32 @@ The fresh baseline reproduced tpl36a's baseline accuracy (8/18).
 **Interpretation:**
 - **Tokens:** the median task needs a third of the tokens. A tail of hard tasks costs about the same in both arms.
 - **Agreement:** the arms gave identical answers on 155/450 tasks.
-- **Accuracy:** only 6 of the 450 have public answers, and both arms got 2/6. Accuracy comes from the leaderboard: `results/full1-*.submission.jsonl`, scored by Adyen's official scorer on the Unvalidated leaderboard.
+- **Accuracy:** only 6 of the 450 have public answers, and both arms got 2/6, so accuracy comes from the leaderboard (below).
+
+### Official scores (DABstep Unvalidated leaderboard, 2026-10-12)
+
+**Submissions:**
+- "Cloudflare Code Mode Baseline" and "Cloudflare Code Mode with Examples".
+- Both were scored by Adyen's official scorer. Per-task scores are published in the `adyen/DABstep` dataset under `data/task_scores/`.
+- Code is at tag [`dabstep-full1`](https://github.com/smithclay/codemode-git/tree/dabstep-full1).
+- An earlier upload of the same baseline file, as "Cloudflare Code Mode dabstep-full1", was never scored and was resubmitted.
+
+| Level | Baseline | Examples | Diff | Only baseline right | Only examples right | McNemar (exact) |
+|---|---|---|---|---|---|---|
+| Easy (72) | 56 (77.8%) | 62 (86.1%) | +8.3 pts | 1 | 7 | p = 0.07 |
+| Hard (378) | 89 (23.5%) | 146 (38.6%) | +15.1 pts | 24 | 81 | p < 0.001 |
+| Overall (450) | 145 (32.2%) | 208 (46.2%) | +14.0 pts | 25 | 88 | p < 0.001 |
+
+**Where the gain comes from:**
+- Of the 88 tasks only the examples arm got right, the baseline had run out of steps on 13 and answered "Not Applicable" on 15.
+- Most of the gain is better answers, not merely more answers.
+- Of the 25 tasks only the baseline got right, the examples arm ran out of steps on 2.
+
+**Bottom line:** at the same model and prompt, adding examples raised hard-task accuracy from 23.5% to 38.6% while using a third of the median tokens per task.
+
+**Caveats for the claim:**
+- **Test-time learning:** agents see earlier agents' own unverified runs from the same pass over the test set. No answers or labels are used.
+- **Task order** is fixed and published (`data/tasks/all.jsonl`).
+- **Benchmark structure:** DABstep's tasks come in templates of similar questions, which is the setting where reuse helps.
+- **One run per arm.** The paired, per-task comparison controls for task difficulty, but not for run-to-run variance.
+- **Prediction miss:** before scores were available, we predicted a 0–3 point gain from label-free signals. That prediction was wrong.

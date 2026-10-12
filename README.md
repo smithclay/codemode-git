@@ -2,7 +2,7 @@
 
 Every [Code Mode](https://www.npmjs.com/package/@cloudflare/codemode) execution becomes a git commit on that agent's own [Cloudflare Artifacts](https://developers.cloudflare.com/artifacts/) repo. Clone it with plain `git` and `git log -p run.js` is the agent's trajectory.
 
-Optionally, agents learn from each other: each agent's answer-producing run is embedded into [Vectorize](https://developers.cloudflare.com/vectorize/), and a new agent starts with the closest runs other agents committed, as unverified examples. On the [DABstep](https://huggingface.co/spaces/adyen/DABstep) benchmark this cut tokens per task roughly in half without hurting accuracy (see [docs/experiments.md](docs/experiments.md)).
+Optionally, agents learn from each other: each agent's answer-producing run is embedded into [Vectorize](https://developers.cloudflare.com/vectorize/), and a new agent starts with the closest runs other agents committed, as unverified examples. On all 450 tasks of the [DABstep](https://huggingface.co/spaces/adyen/DABstep) data-analysis benchmark, with the same model (glm-5.3-flash) and prompt, adding examples raised accuracy from 32.2% to 46.2% on Adyen's official scorer (hard tasks: 23.5% → 38.6%). It also cut median tokens per task by about two thirds (see [docs/experiments.md](docs/experiments.md)).
 
 ## Use it in a Code Mode agent
 

@@ -8,11 +8,13 @@ Fill in on the form: team name, primary contact, location, and up to two attende
 
 ## Project name
 
-codemode-git
+Self-Improving Code Mode Workers, with Artifacts Memory
+
+The package and repo are `codemode-git` (`@smithclay/codemode-git` on npm).
 
 ## Project vision
 
-Code memory for Code Mode agents, on Cloudflare Artifacts. Throw away the isolate, keep the code.
+Code memory for Code Mode agents, on Cloudflare Artifacts. Keep the code, and your Workers get smarter over time.
 
 Code Mode showed that models do better when they write code against their tools than when they call tools one at a time. Each snippet runs in a fresh isolate that's thrown away afterward, and the code goes with it. That code is the agent's plan, and over time it's the agent's experience. We think it's worth keeping, and that learning from it measurably improves agent outcomes.
 

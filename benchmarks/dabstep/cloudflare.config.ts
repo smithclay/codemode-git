@@ -8,7 +8,9 @@ export default defineConfig({
     entrypoint: "src/index.ts",
     observability: { enabled: true },
     exports: {
-      Solver: exports.durableObject({ storage: "sqlite" })
+      Solver: exports.durableObject({ storage: "sqlite" }),
+      // Retired with the curated-skills arm (see docs/experiments.md, tpl36b).
+      DabstepCurator: exports.durableObject({ state: "deleted" })
     },
     env: {
       // DABstep context data (scripts/build_sql.py), read-only to agents.

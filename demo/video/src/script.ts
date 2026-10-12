@@ -52,7 +52,7 @@ export const scenes: Scene[] = [
   { id: "vanish", visual: "vanish" },
   { id: "code-mode", visual: "code-mode" },
   { id: "gap", visual: "gap" },
-  { id: "memory", visual: "memory" },
+  { id: "code-memory", visual: "memory" },
   { id: "under-the-hood", visual: "under-the-hood" },
   { id: "repo", visual: "repo", minSeconds: 30 },
   { id: "scale", visual: "scale", minSeconds: 25 },

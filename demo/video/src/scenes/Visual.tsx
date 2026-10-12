@@ -188,12 +188,14 @@ function Thesis({ cue }: { cue: Cue }) {
   // The question builds phrase by phrase, then the name lands under it.
   const parts = [
     { text: "What if Cloudflare Artifacts", at: cue("What if", 0.5), color: theme.text },
-    { text: "could make Code Mode", at: cue("could make", 1.6), color: theme.text },
+    { text: "could make Code Mode in Workers", at: cue("could make", 1.6), color: theme.text },
     { text: "self-improving?", at: cue("self-improving?", 2.6), color: theme.amber }
   ];
   const tKeep = cue("Keep", 6);
   const tName = cue("That's", 9);
-  const settle = ramp(t, tName - 0.4, tName + 0.4);
+  // The subtitle leaves before the name arrives, so they never overlap.
+  const settle = ramp(t, tName - 0.1, tName + 0.4);
+  const subtitleOut = ramp(t, tName - 0.7, tName - 0.2);
   return (
     <Canvas>
       <LavaWall opacity={0.12 + 0.2 * settle} top={560} rows={4} />
@@ -209,7 +211,7 @@ function Thesis({ cue }: { cue: Cue }) {
           {p.text}
         </Label>
       ))}
-      <Label x={960} y={640 - settle * 40} size={36} color={theme.muted} weight={500} opacity={ramp(t, tKeep - 0.3, tKeep + 0.3) * (1 - settle)}>
+      <Label x={960} y={640} size={36} color={theme.muted} weight={500} opacity={ramp(t, tKeep - 0.3, tKeep + 0.3) * (1 - subtitleOut)}>
         keep every run · learn from it
       </Label>
       <Label x={960} y={640} size={72} weight={800} mono opacity={settle}>codemode-git</Label>
@@ -318,7 +320,7 @@ function CodeMode({ cue }: { cue: Cue }) {
 function Gap({ cue }: { cue: Cue }) {
   const t = useSeconds();
   const tThrown = cue("thrown", 1.6);
-  const tPlan = cue("plan", 3.4);
+  const tPlan = cue("code goes", 3.4);
   const shrink = ramp(t, tThrown, tThrown + 0.8);
   const fall = ramp(t, tPlan - 0.2, tPlan + 1.2);
   const lines = ["do {", "  const page = await lamps.wall({ cursor });", "  n += page.lamps.filter(flowing).length;", "} while (cursor);"];
@@ -334,7 +336,7 @@ function Gap({ cue }: { cue: Cue }) {
         </Label>
       ))}
       <Label x={960} y={900} size={44} color={theme.red} weight={700} opacity={ramp(t, tPlan, tPlan + 0.6)}>
-        the plan is gone
+        the code is gone
       </Label>
     </Canvas>
   );
@@ -390,7 +392,7 @@ function UnderTheHood({ cue }: { cue: Cue }) {
   const steps = [
     { label: "execution ends", sub: "disposeExecution()", at: cue("connector", 1.5) },
     { label: "Durable Object", sub: "SQLite outbox", at: cue("outbox", 4) },
-    { label: "isomorphic-git", sub: "push, in order", at: cue("isomorphic-git", 6.5) },
+    { label: "isomorphic-git", sub: "push, in order", at: cue("git pushes", 6.5) },
     { label: "Artifacts repo", sub: "one commit per run", at: cue("Artifacts,", 8.5) }
   ];
   const w = 360, gap = 80, x0 = (1920 - (4 * w + 3 * gap)) / 2, y = 440, h = 150;
@@ -469,7 +471,7 @@ function Recall({ cue }: { cue: Cue }) {
   const tEmbed = cue("embeds", 2.5);
   const tVec = cue("Vectorize.", 4.5);
   const tNext = cue("next agent", 6);
-  const tRecords = cue("records", 10);
+  const tRecords = cue("searches", 10);
   const y = 380;
   return (
     <Canvas>
@@ -661,7 +663,7 @@ function Contagion({ cue }: { cue: Cue }) {
 
 function Close({ cue }: { cue: Cue }) {
   const t = useSeconds();
-  const tTag = cue("Throw", 6);
+  const tTag = cue("Keep the code", 4);
   const lines = [
     "const history = new GitHistoryConnector(ctx, env, { sink });",
     "const runtime = history.bind(createCodemodeRuntime({",
@@ -676,7 +678,8 @@ function Close({ cue }: { cue: Cue }) {
       ))}
       <g opacity={ramp(t, tTag - 0.2, tTag + 0.4)}>
         <rect x={260} y={560} width={1400} height={170} rx={20} fill={theme.bg} opacity={0.85} />
-        <Label x={960} y={645} size={78} color={theme.amber} weight={800}>Throw away the isolate. Keep the code.</Label>
+        <Label x={960} y={620} size={88} color={theme.amber} weight={800}>Keep the code.</Label>
+        <Label x={960} y={700} size={40} color={theme.text} weight={500}>Your Workers get smarter over time.</Label>
       </g>
     </Canvas>
   );

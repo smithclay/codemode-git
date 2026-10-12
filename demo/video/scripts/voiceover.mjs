@@ -75,9 +75,10 @@ function readTranscript() {
   const sections = {};
   let id = null;
   for (const line of md.split("\n")) {
-    const heading = /^##\s+(\S+)\s*$/.exec(line);
+    const heading = /^##\s+(.*?)\s*$/.exec(line);
     if (heading) {
       id = heading[1];
+      if (/\s/.test(id)) throw new Error(`transcript.md: "## ${id}" — scene ids can't contain spaces (use "${id.replace(/\s+/g, "-")}" and match src/script.ts)`);
       if (id in sections) throw new Error(`transcript.md: duplicate section "## ${id}"`);
       sections[id] = [];
     } else if (id) {

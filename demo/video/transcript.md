@@ -13,31 +13,31 @@ HTML comments like this one are never spoken.
 
 ## thesis
 
-What if Cloudflare Artifacts could make Code Mode self-improving? Every Code Mode run is a program. Keep every program, and let the next agent learn from it. That's codemode-git.
+What if Cloudflare Artifacts could make Code Mode in Workers self-improving? Every Code Mode run is a program. Keep every program in Artifacts, and let the next agent learn from it. That's codemode-git.
 
 ## hook
 
-We tried it. Same model. Same prompt. Same four hundred and fifty tasks. Accuracy went from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. The only thing we added was memory.
+We used an open source data analytics benchmark with the same four hundred and fifty tasks. Accuracy went from thirty-two percent to forty-six. On the hardest tasks, from twenty-three to almost thirty-nine. The only thing we added was memory.
 
 ## vanish
 
-Today, every agent starts from zero. It writes code, runs it, gets an answer, and the code is gone. A thousand agents solve the same problem a thousand times.
+Today, every Code Mode agent writes code, runs it, gets an answer, and the code is gone. A thousand agents solve similar problems hundreds of times, even if they've seen it before.
 
 ## code-mode
 
-Some context. With Cloudflare's Code Mode, agents don't call tools one at a time, sending every result back through the model. They write one program against the tools, a compact plan, and run it in a fresh isolate. That program is a complete record of how the agent solved the problem.
+First, let's review Cloudflare's Code Mode. Agents don't call tools one at a time, sending every result back through the model: They write one program against the tools and run it in a fresh Worker isolate. That program is a complete record of how the agent solved the problem.
 
 ## gap
 
-But the isolate is thrown away after every run, and the plan goes with it.
+But the isolate is thrown away after every run, and the code goes with it. When similar tasks are given to the agent again, it forgets.
 
-## memory
+## code-memory
 
-So we keep it. Every execution becomes a commit on that agent's own Cloudflare Artifacts repo: the code, every tool call and its result, and the outcome. One repo per agent, and one writer per repo. Nothing to lock, nothing to merge.
+So we keep it in a Cloudflare Artifact git repository. Every execution becomes a commit on that agent's own personal repo: the code, every tool call and its result, and the outcome. One repo per agent, and one writer per repo. Nothing to lock, nothing to merge.
 
 ## under-the-hood
 
-Under the hood, a connector hooks the end of every execution. The run lands in a SQLite outbox inside the agent's Durable Object, and isomorphic-git pushes it to Artifacts, in order, and safely across restarts. Artifacts speaks Git, so any git client can read an agent's history.
+Under the hood, a connector hooks the end of every execution in the Cloudflare SDK. The run lands in a SQLite outbox inside the agent's Durable Object, and git pushes it to Artifacts. Any git client can read an agent's history and use that to learn.
 
 ## repo
 
@@ -49,20 +49,20 @@ Artifacts is built for tens of millions of repos, so every agent gets its own, a
 
 ## recall
 
-Then, the learning. When a run produces an answer, Workers AI embeds the question and the code into Vectorize. The next agent with a similar question starts from the closest runs, labeled unverified. And its own commit records exactly which memories it used.
+Here's a simple way agents can use Artifacts to learn. When a run produces an answer, Workers AI embeds the question and the code into Cloudflare Vectorize. The next agent with a similar question searches for similar solutions and uses that for better context.
 
 ## walkthrough
 
 <!-- Check against the recorded walkthrough.mjs run before final render. -->
-Here it is on Cloudflare's wall of lava lamps. Agent Michelle asks how many lamps are flowing. With no memory, Michelle has to discover that the wall is paginated. Agent Matthew asks about the red lamps, starts from Michelle's run, and already knows to walk every page.
+Let's walk through an example: Cloudflare's wall of lava lamps. Agent Michelle asks how many lamps are flowing. With no memory, Michelle has to discover that the wall is paginated. Agent Matthew asks about the red lamps, starts from Michelle's run, and already knows to walk every page.
 
 ## curve
 
-At scale, we ran DABstep: four hundred and fifty real data investigations over Adyen's payments data. With no memory, both arms cost the same. As memory fills, the median cost per task drops to about a third, within the first few dozen tasks, and it stays there.
+At scale, we ran the DABstep benchmark: four hundred and fifty real data investigations over Adyen's payments data. With no memory, both arms cost the same. As memory fills, the median cost per task drops to about a third, within the first few dozen tasks, and it stays there.
 
 ## accuracy
 
-And they're not just cheaper. They're right more often. Scored by Adyen: forty-six percent overall, up from thirty-two.
+And they're not just cheaper. They're right more often. Scored by DABstep: forty-six percent overall, up from thirty-two.
 
 ## contagion
 
@@ -70,4 +70,4 @@ We also learned what kind of memory works. Our first version distilled runs into
 
 ## close
 
-It's on npm: three lines in any Code Mode agent, and a Deploy to Cloudflare button. Throw away the isolate. Keep the code.
+It's on npm: three lines in any Code Mode agent. Keep the code, and your Workers get smarter over time.

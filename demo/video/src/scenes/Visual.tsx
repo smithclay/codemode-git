@@ -776,3 +776,30 @@ function Credits() {
     </Canvas>
   );
 }
+
+/** The README poster: the opening question, the title, and a play button. */
+export function Poster() {
+  return (
+    <AbsoluteFill style={{ background: theme.bg }}>
+      <Canvas>
+        <LavaWall opacity={0.35} top={600} rows={4} />
+        <rect x={0} y={0} width={1920} height={1080} fill="url(#poster-fade)" />
+        <defs>
+          <linearGradient id="poster-fade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0.4" stopColor={theme.bg} stopOpacity={1} />
+            <stop offset="0.85" stopColor={theme.bg} stopOpacity={0.3} />
+          </linearGradient>
+        </defs>
+        <Label x={960} y={190} size={84} weight={800}>What if Cloudflare Artifacts</Label>
+        <Label x={960} y={300} size={84} weight={800}>could make Code Mode in Workers</Label>
+        <Label x={960} y={410} size={84} weight={800} color={theme.amber}>self-improving?</Label>
+        <Label x={960} y={560} size={48} weight={700}>Self-Improving Code Mode Workers, with Artifacts Memory</Label>
+        <g>
+          <rect x={660} y={680} width={600} height={120} rx={60} fill={theme.orange} />
+          <path d="M 735 712 L 735 768 L 783 740 Z" fill="#fff" />
+          <Label x={1010} y={742} size={44} weight={800} color="#fff">Watch the demo</Label>
+        </g>
+      </Canvas>
+    </AbsoluteFill>
+  );
+}

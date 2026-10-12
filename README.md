@@ -7,6 +7,8 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)
 
+[![Watch the 5-minute demo](docs/assets/demo-poster.jpg)](https://github.com/smithclay/codemode-git/releases/download/demo-video/codemode-git-demo.mp4)
+
 **`codemode-git` gives Code Mode agents code memory on Cloudflare Artifacts.** Keep the code, and your Workers get smarter over time.
 
 Every [Code Mode](https://www.npmjs.com/package/@cloudflare/codemode) execution becomes a git commit on that agent's own [Cloudflare Artifacts](https://developers.cloudflare.com/artifacts/) repo. Clone it with plain `git` and `git log -p run.js` is the agent's trajectory.

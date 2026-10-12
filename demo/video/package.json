@@ -9,7 +9,8 @@
     "studio": "remotion studio",
     "render": "remotion render Demo out/demo.mp4",
     "typecheck": "tsc -p . && tsc -p worker",
-    "record": "node scripts/record.mjs new-worker"
+    "record": "node scripts/record.mjs new-worker",
+    "publish-video": "node scripts/publish-video.mjs"
   },
   "dependencies": {
     "@remotion/cli": "4.0.532",

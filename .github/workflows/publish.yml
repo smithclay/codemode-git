@@ -11,6 +11,9 @@ permissions: {}
 
 jobs:
   verify:
+    # Only version releases (v1.2.3) publish; other releases, like the demo
+    # video's, skip every job.
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     permissions:
       contents: read

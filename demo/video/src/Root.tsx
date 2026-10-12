@@ -1,4 +1,5 @@
-import { Composition, staticFile } from "remotion";
+import { Composition, Still, staticFile } from "remotion";
+import { Poster } from "./scenes/Visual";
 import { Demo, FPS, sceneFrames, type DemoProps, type Manifest } from "./Demo";
 import { scenes } from "./script";
 
@@ -25,6 +26,8 @@ async function loadClips(): Promise<string[]> {
 }
 
 export const RemotionRoot = () => (
+  <>
+  <Still id="Poster" component={Poster} width={1920} height={1080} />
   <Composition
     id="Demo"
     component={Demo}
@@ -38,4 +41,5 @@ export const RemotionRoot = () => (
       return { durationInFrames, props: { manifest, clips } };
     }}
   />
+  </>
 );

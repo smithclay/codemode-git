@@ -152,12 +152,12 @@ curl -X POST localhost:8787/agents/michelle/ask -d '{"question": "How many lava 
 # {"agent","question","answer","steps","executions","errors","tokens":{"input","output"},"examples":["agent-…@sha"],"commits":[{"sha","intent","status"}],"indexed"}
 ```
 
-Pass `"useExamples": false` for a baseline without retrieval. `GET /agents/:name/examples?question=...` shows what `ask` would retrieve, without calling the chat model.
+Pass `"useExamples": false` for a baseline without retrieval. Agents share the `lamps` examples scope; pass `"scope": "<name>"` to keep a group of runs separate. `GET /agents/:name/examples?question=...[&scope=...]` shows what `ask` would retrieve, without calling the chat model.
 
-`scripts/walkthrough.mjs` runs the two-agent demo: `michelle` asks how many lamps are flowing, then `matthew` asks how many red lamps are flowing and is shown michelle's run. Between the two it polls until michelle's run is retrievable, because Vectorize metadata filters see new vectors only after ~1–2 minutes (`--wait` caps the wait in seconds, default 180). Agent names get a run-unique prefix, so each rerun uses fresh agents and repos. It prints both answers side by side with executions, steps, tokens, examples and commit shas.
+`scripts/walkthrough.mjs` runs the two-agent demo: `michelle` asks how many lamps are flowing, then `matthew` asks how many red lamps are flowing and is shown michelle's run. Between the two it polls until michelle's run is retrievable, because Vectorize metadata filters see new vectors only after ~1–2 minutes (`--wait` caps the wait in seconds, default 180). Agent names and the examples scope are run-unique, so each rerun uses fresh agents and repos, and earlier runs can't crowd out this run's michelle (`--scope lamps` shares memory instead). It prints both answers side by side with executions, steps, tokens, examples and commit shas.
 
 ```bash
-node examples/agent/scripts/walkthrough.mjs https://codemode-git-example.<subdomain>.workers.dev [--prefix demo] [--wait 180]
+node examples/agent/scripts/walkthrough.mjs https://codemode-git-example.<subdomain>.workers.dev [--prefix demo] [--scope <name>] [--wait 180]
 ```
 
 ### Run many agents at once

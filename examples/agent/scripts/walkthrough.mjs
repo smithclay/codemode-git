@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Two agents, one learning from the other.
 //
-//   node scripts/walkthrough.mjs <base-url> [--prefix demo] [--wait 180] [--poll 10]
+//   node scripts/walkthrough.mjs <base-url> [--prefix demo] [--scope <name>] [--wait 180] [--poll 10]
 //
 // 1. michelle answers "How many lava lamps on the wall are flowing right now?"
 //    by writing and running her own code. Her answer-producing run is indexed.
@@ -17,7 +17,7 @@
 
 const [base, ...rest] = process.argv.slice(2);
 if (!base) {
-  console.error("usage: node scripts/walkthrough.mjs <base-url> [--prefix demo] [--wait 180] [--poll 10]");
+  console.error("usage: node scripts/walkthrough.mjs <base-url> [--prefix demo] [--scope <name>] [--wait 180] [--poll 10]");
   process.exit(1);
 }
 const flag = (name, fallback) => {
@@ -35,6 +35,9 @@ const AGENTS = [
   { label: "matthew", question: "How many red lava lamps are flowing?", expected: "10" }
 ];
 const agentName = (label) => `${prefix}-${run}-${label}`;
+// Run-unique by default, so earlier rehearsals' runs can't crowd out this
+// run's michelle in matthew's top 3. Pass --scope lamps to share memory.
+const scope = flag("scope", `${prefix}-${run}`);
 
 async function request(method, path, body) {
   const res = await fetch(new URL(path, base), {
@@ -49,7 +52,7 @@ async function request(method, path, body) {
 async function ask({ label, question }) {
   console.error(`\n${label} asks: ${question}`);
   const t0 = performance.now();
-  const result = await request("POST", `/agents/${agentName(label)}/ask`, { question });
+  const result = await request("POST", `/agents/${agentName(label)}/ask`, { question, scope });
   const seconds = Math.round((performance.now() - t0) / 100) / 10;
   console.error(`${label} answered ${JSON.stringify(result.answer)} in ${seconds}s`);
   return { ...result, seconds };
@@ -58,7 +61,7 @@ async function ask({ label, question }) {
 /** Poll what matthew would retrieve until michelle's repo shows up, with a countdown. */
 async function waitForExample(asker, repo) {
   const deadline = Date.now() + waitSeconds * 1000;
-  const path = `/agents/${agentName(asker.label)}/examples?question=${encodeURIComponent(asker.question)}`;
+  const path = `/agents/${agentName(asker.label)}/examples?question=${encodeURIComponent(asker.question)}&scope=${scope}`;
   for (;;) {
     const examples = await request("GET", path);
     if (examples.some((e) => e.ref.startsWith(`${repo}@`))) {

@@ -1,6 +1,6 @@
 {
   "name": "@smithclay/codemode-git",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Every Code Mode execution becomes a git commit on a Cloudflare Artifacts repo.",
   "type": "module",
   "exports": {

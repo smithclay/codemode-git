@@ -1,0 +1,2 @@
+# Requests must send `Authorization: Bearer <ADMIN_TOKEN>`.
+ADMIN_TOKEN=

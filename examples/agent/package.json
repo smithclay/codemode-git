@@ -9,12 +9,28 @@
   },
   "dependencies": {
     "@cloudflare/codemode": "^0.5.3",
-    "@smithclay/codemode-git": "*"
+    "@smithclay/codemode-git": "^0.1.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261011.1",
     "cf": "^1.0.0-beta.14",
     "typescript": "^5.9.0",
     "wrangler": "^4.149.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "ARTIFACTS": {
+        "description": "Cloudflare Artifacts namespace `codemode-git`, one git repo per agent. Create it first with `npx cf artifacts namespaces create --namespace codemode-git`."
+      },
+      "LOADER": {
+        "description": "Worker Loader that runs the model's code in a sandboxed Dynamic Worker."
+      },
+      "AGENT": {
+        "description": "Durable Object, one per agent. Holds the Code Mode runtime and the commit outbox."
+      },
+      "ADMIN_TOKEN": {
+        "description": "Requests must send `Authorization: Bearer <ADMIN_TOKEN>`. **Set this**: the Worker runs arbitrary code it is sent."
+      }
+    }
   }
 }

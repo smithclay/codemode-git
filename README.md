@@ -1,4 +1,4 @@
-# codemode-git
+# Self-Improving Code Mode Workers, with Artifacts Memory
 
 [![CI](https://github.com/smithclay/codemode-git/actions/workflows/ci.yml/badge.svg)](https://github.com/smithclay/codemode-git/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@smithclay/codemode-git)](https://www.npmjs.com/package/@smithclay/codemode-git)
@@ -7,7 +7,7 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)
 
-**Code memory for Code Mode agents, on Cloudflare Artifacts.** Throw away the isolate, keep the code.
+**`codemode-git` gives Code Mode agents code memory on Cloudflare Artifacts.** Keep the code, and your Workers get smarter over time.
 
 Every [Code Mode](https://www.npmjs.com/package/@cloudflare/codemode) execution becomes a git commit on that agent's own [Cloudflare Artifacts](https://developers.cloudflare.com/artifacts/) repo. Clone it with plain `git` and `git log -p run.js` is the agent's trajectory.
 

@@ -214,18 +214,21 @@ function Thesis({ cue }: { cue: Cue }) {
       <Label x={960} y={640} size={36} color={theme.muted} weight={500} opacity={ramp(t, tKeep - 0.3, tKeep + 0.3) * (1 - subtitleOut)}>
         keep every run · learn from it
       </Label>
-      <Label x={960} y={640} size={72} weight={800} mono opacity={settle}>codemode-git</Label>
+      <Label x={960} y={630} size={56} weight={800} opacity={settle}>Self-Improving Code Mode Workers,</Label>
+      <Label x={960} y={700} size={56} weight={800} opacity={settle}>with Artifacts Memory</Label>
+      <Label x={960} y={790} size={30} weight={500} mono color={theme.muted} opacity={settle}>codemode-git</Label>
     </Canvas>
   );
 }
 
 function Agent({ x, y, r = 46, color = theme.text, p = 1, label }: { x: number; y: number; r?: number; color?: string; p?: number; label?: string }) {
+  // A robot in a ring; the ring's color carries state (red wrong, green right, amber highlighted).
   return (
     <g opacity={p}>
       <circle cx={x} cy={y} r={r} fill={theme.panel} stroke={color} strokeWidth={3} />
-      <circle cx={x - r * 0.3} cy={y - r * 0.1} r={r * 0.1} fill={color} />
-      <circle cx={x + r * 0.3} cy={y - r * 0.1} r={r * 0.1} fill={color} />
-      <path d={`M${x - r * 0.3} ${y + r * 0.3} Q${x} ${y + r * 0.5} ${x + r * 0.3} ${y + r * 0.3}`} stroke={color} strokeWidth={3} fill="none" />
+      <text x={x} y={y + r * 0.06} fontSize={r * 1.15} textAnchor="middle" dominantBaseline="middle">
+        🤖
+      </text>
       {label && <Label x={x} y={y + r + 30} size={24} color={theme.muted} weight={500} mono>{label}</Label>}
     </g>
   );

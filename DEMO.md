@@ -12,7 +12,9 @@
    - **Phase 1, durable:** every Code Mode execution is saved to the agent's own Cloudflare Artifacts repo.
    - **Phase 2, learning:** Workers AI embeddings and Vectorize let the next agent start from the closest code other agents already ran. That measurably improves agent outcomes.
 
-**Tagline:** throw away the isolate, keep the code.
+**Title:** Self-Improving Code Mode Workers, with Artifacts Memory. The package stays `codemode-git`.
+
+**Tagline:** keep the code, and your Workers get smarter over time.
 
 **Vocabulary:** say "Cloudflare Artifacts" and "code memory", not "git". Artifacts speaks Git, so mention once that any git client can read it, and move on. We are not pitching a reimagined GitHub.
 

@@ -43,10 +43,6 @@ export class CodeAgent extends DurableObject<Env> {
     return this.#setup(agent).runtime.execute({ code });
   }
 
-  async snippets(agent: string) {
-    return this.#setup(agent).runtime.snippets();
-  }
-
   async commits(agent: string) {
     return this.#setup(agent).history.commits(20);
   }
@@ -63,10 +59,10 @@ export default {
     if (env.ADMIN_TOKEN && request.headers.get("authorization") !== `Bearer ${env.ADMIN_TOKEN}`) {
       return new Response("unauthorized", { status: 401 });
     }
-    const match = /^\/agents\/([a-z0-9-]{1,48})\/(execute|commits|flush|snippets)$/.exec(new URL(request.url).pathname);
+    const match = /^\/agents\/([a-z0-9-]{1,48})\/(execute|commits|flush)$/.exec(new URL(request.url).pathname);
     if (!match) {
       return new Response(
-        "POST /agents/:name/execute (body: code) | GET /agents/:name/commits | GET /agents/:name/snippets | POST /agents/:name/flush\n",
+        "POST /agents/:name/execute (body: code) | GET /agents/:name/commits | POST /agents/:name/flush\n",
         { status: 404 }
       );
     }
@@ -78,9 +74,6 @@ export default {
     }
     if (action === "commits" && request.method === "GET") {
       return Response.json(await stub.commits(agent));
-    }
-    if (action === "snippets" && request.method === "GET") {
-      return Response.json(await stub.snippets(agent));
     }
     if (action === "flush" && request.method === "POST") {
       return Response.json(await stub.flush(agent));

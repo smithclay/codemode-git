@@ -87,7 +87,7 @@ async function solveOnce(task, attempt) {
     }),
     // A connection the worker drops without closing would otherwise hang the
     // whole wave; treat it as a failed attempt and retry with a fresh agent.
-    signal: AbortSignal.timeout(20 * 60 * 1000)
+    signal: AbortSignal.timeout(45 * 60 * 1000)
   });
   if (!res.ok) {
     const body = await res.text();

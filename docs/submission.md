@@ -12,15 +12,19 @@ codemode-git
 
 ## Project vision
 
-The next GitHub has no merge button. When thousands of agents work at once, branches, merge conflicts and review queues are the bottleneck. codemode-git gives every Code Mode agent its own Cloudflare Artifacts repo, and every execution becomes a commit: the code, every tool call and the result. Agents never write to a shared repo, so there's nothing to lock or merge.
+Self-improving Code Mode agents, with git as their memory.
 
-Agents collaborate by reading instead of merging. Each answer-producing run is embedded into Vectorize. The next agent starts with the closest commits other agents made, shown as unverified examples, and a trailer records which commits influenced which. The result is a provenance graph in plain git.
+Code Mode lets a model write code against its tools, which makes agents good at investigations. But every investigation is thrown away when the run ends, so each new agent starts from zero. codemode-git makes that layer durable, then learns from it.
 
-We tested it on all 450 tasks of Adyen's DABstep benchmark, with the same model and prompt, scored by Adyen's official scorer:
+**Phase 1, durable:** every Code Mode execution becomes a commit on the agent's own Cloudflare Artifacts repo: the code, every tool call with its result, and the outcome. Each agent is the only writer to its repo, so thousands can run at once without locks or merges. Agents read their history back through tools, and people can `git clone` it. GitHub here is headless: git is the memory layer, not a UI.
+
+**Phase 2, learning:** each answer-producing run is embedded into Vectorize. A new agent starts with the closest runs other agents committed, shown as unverified examples, and a commit trailer records which memories each run used.
+
+On all 450 tasks of Adyen's DABstep benchmark, with the same model and prompt, scored by Adyen's official scorer:
 - **Accuracy:** 32.2% → 46.2% overall, and 23.5% → 38.6% on hard tasks.
-- **Cost:** median tokens per task fell by about two thirds.
+- **Cost:** after a cold start of about 25 tasks, median tokens per task held at about a third of baseline.
 
-We also built, measured and removed the GitHub-style alternative: a replay-verified shared skill library. It made agents wrong together.
+We also found that distilled, verified "skills" made agents wrong together, while raw, unverified runs worked.
 
 ## How you used Cloudflare
 

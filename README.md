@@ -115,10 +115,10 @@ cf artifacts namespaces create --namespace codemode-git
 cd examples/agent && cf dev
 ```
 
-Then run some code as agent `alice`:
+Then run some code as agent `michelle`:
 
 ```bash
-curl -X POST localhost:8787/agents/alice/execute --data-binary @- <<'EOF'
+curl -X POST localhost:8787/agents/michelle/execute --data-binary @- <<'EOF'
 // Count lava lamps that are flowing, across every page of the wall
 async () => {
   let cursor = null, count = 0;
@@ -130,14 +130,14 @@ async () => {
   return count;
 }
 EOF
-curl localhost:8787/agents/alice/commits
+curl localhost:8787/agents/michelle/commits
 ```
 
 Clone the agent's repo with a read token (use the `plaintext` value up to `?expires=`):
 
 ```bash
-cf artifacts namespaces tokens create codemode-git --repo agent-alice --scope read --ttl 3600
-git -c http.extraHeader="Authorization: Bearer <token>" clone https://<account-id>.artifacts.cloudflare.net/git/codemode-git/agent-alice.git
+cf artifacts namespaces tokens create codemode-git --repo agent-michelle --scope read --ttl 3600
+git -c http.extraHeader="Authorization: Bearer <token>" clone https://<account-id>.artifacts.cloudflare.net/git/codemode-git/agent-michelle.git
 git log --format='%h %s [%(trailers:key=Codemode-Status,valueonly)]'
 ```
 

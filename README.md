@@ -101,7 +101,7 @@ An earlier version distilled runs into a shared library of verified skills with 
 
 ```
 packages/codemode-git/   the plugin: history connector, Artifacts sink, examples (Vectorize)
-examples/agent/          a stock Code Mode agent with a paginated `catalog` connector
+examples/agent/          a stock Code Mode agent with a paginated `lamps` connector (a lava lamp wall)
 benchmarks/dabstep/      DABstep harness: stock Code Mode vs Code Mode + codemode-git
 ```
 
@@ -119,12 +119,12 @@ Then run some code as agent `alice`:
 
 ```bash
 curl -X POST localhost:8787/agents/alice/execute --data-binary @- <<'EOF'
-// Count lamps in stock across every page
+// Count lava lamps that are flowing, across every page of the wall
 async () => {
   let cursor = null, count = 0;
   do {
-    const page = await catalog.search({ category: "lamps", cursor });
-    count += page.items.filter((p) => p.stock > 0).length;
+    const page = await lamps.wall({ cursor });
+    count += page.lamps.filter((l) => l.status === "flowing").length;
     cursor = page.nextCursor;
   } while (cursor);
   return count;

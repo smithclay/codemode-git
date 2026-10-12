@@ -23,13 +23,13 @@ const prefix = flag("prefix", "swarm");
 const run = Date.now().toString(36);
 const headers = process.env.ADMIN_TOKEN ? { authorization: `Bearer ${process.env.ADMIN_TOKEN}` } : {};
 
-const CATEGORIES = ["lamps", "chairs", "desks", "rugs", "shelves"];
-const code = (category) => `// Count ${category} in stock across every page
+const WAX = ["red", "orange", "yellow", "green", "blue", "purple", "pink"];
+const code = (wax) => `// Count ${wax} lava lamps that are flowing, across every page of the wall
 async () => {
   let cursor = null, count = 0;
   do {
-    const page = await catalog.search({ category: "${category}", cursor });
-    count += page.items.filter((p) => p.stock > 0).length;
+    const page = await lamps.wall({ wax: "${wax}", cursor });
+    count += page.lamps.filter((l) => l.status === "flowing").length;
     cursor = page.nextCursor;
   } while (cursor);
   return count;
@@ -44,7 +44,7 @@ async function post(path, body) {
 async function runAgent(i) {
   const name = `${prefix}-${run}-${i}`;
   const t0 = performance.now();
-  const exec = await post(`/agents/${name}/execute`, code(CATEGORIES[i % CATEGORIES.length]));
+  const exec = await post(`/agents/${name}/execute`, code(WAX[i % WAX.length]));
   const t1 = performance.now();
   const commits = await post(`/agents/${name}/flush`);
   const t2 = performance.now();

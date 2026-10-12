@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { createCodemodeRuntime, DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { ArtifactsSink, GitHistoryConnector } from "@smithclay/codemode-git";
-import { CatalogConnector } from "./catalog";
+import { LampsConnector } from "./lamps";
 
 // Code Mode's runtime facet class must be exported from the entry module.
 export { CodemodeRuntime } from "@cloudflare/codemode";
@@ -33,7 +33,7 @@ export class CodeAgent extends DurableObject<Env> {
       createCodemodeRuntime({
         ctx: this.ctx,
         executor: new DynamicWorkerExecutor({ loader: this.env.LOADER }),
-        connectors: [new CatalogConnector(this.ctx, this.env), history]
+        connectors: [new LampsConnector(this.ctx, this.env), history]
       })
     );
     return { runtime, history };

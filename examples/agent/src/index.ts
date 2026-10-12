@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { createCodemodeRuntime, DynamicWorkerExecutor } from "@cloudflare/codemode";
 import { ArtifactsSink, GitHistoryConnector } from "@smithclay/codemode-git";
-import { CatalogConnector } from "./catalog";
+import { LampsConnector } from "./lamps";
 
 // Code Mode's runtime facet class must be exported from the entry module.
 export { CodemodeRuntime } from "@cloudflare/codemode";
@@ -33,7 +33,7 @@ export class CodeAgent extends DurableObject<Env> {
       createCodemodeRuntime({
         ctx: this.ctx,
         executor: new DynamicWorkerExecutor({ loader: this.env.LOADER }),
-        connectors: [new CatalogConnector(this.ctx, this.env), history]
+        connectors: [new LampsConnector(this.ctx, this.env), history]
       })
     );
     return { runtime, history };
@@ -41,10 +41,6 @@ export class CodeAgent extends DurableObject<Env> {
 
   async execute(agent: string, code: string) {
     return this.#setup(agent).runtime.execute({ code });
-  }
-
-  async snippets(agent: string) {
-    return this.#setup(agent).runtime.snippets();
   }
 
   async commits(agent: string) {
@@ -63,10 +59,10 @@ export default {
     if (env.ADMIN_TOKEN && request.headers.get("authorization") !== `Bearer ${env.ADMIN_TOKEN}`) {
       return new Response("unauthorized", { status: 401 });
     }
-    const match = /^\/agents\/([a-z0-9-]{1,48})\/(execute|commits|flush|snippets)$/.exec(new URL(request.url).pathname);
+    const match = /^\/agents\/([a-z0-9-]{1,48})\/(execute|commits|flush)$/.exec(new URL(request.url).pathname);
     if (!match) {
       return new Response(
-        "POST /agents/:name/execute (body: code) | GET /agents/:name/commits | GET /agents/:name/snippets | POST /agents/:name/flush\n",
+        "POST /agents/:name/execute (body: code) | GET /agents/:name/commits | POST /agents/:name/flush\n",
         { status: 404 }
       );
     }
@@ -78,9 +74,6 @@ export default {
     }
     if (action === "commits" && request.method === "GET") {
       return Response.json(await stub.commits(agent));
-    }
-    if (action === "snippets" && request.method === "GET") {
-      return Response.json(await stub.snippets(agent));
     }
     if (action === "flush" && request.method === "POST") {
       return Response.json(await stub.flush(agent));

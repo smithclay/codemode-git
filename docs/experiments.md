@@ -152,6 +152,23 @@ The fresh baseline reproduced tpl36a's baseline accuracy (8/18).
 - Most of the gain is better answers, not merely more answers.
 - Of the 25 tasks only the baseline got right, the examples arm ran out of steps on 2.
 
+### Learning curve (by position in the run)
+
+The examples arm starts with an empty index, and 8 agents run at once. Grouping tasks by run order (`scripts/learning_curve.py`, with the official per-task scores):
+
+| Tasks (run order) | Examples offered | Accuracy: baseline / examples | Median tokens: baseline / examples |
+|---|---|---|---|
+| 1–8 | 0/8 | 25.0% / 37.5% | 315k / 320k |
+| 9–24 | 15/16 | 25.0% / 43.8% | 341k / 217k |
+| 25–48 | 24/24 | 37.5% / 50.0% | 215k / 45k |
+| 49–96 | 48/48 | 35.4% / 52.1% | 141k / 41k |
+| 97–450 | 354/354 | 31.9% / 45.5% | 186k / 60k |
+
+**Reading it:**
+- **Cold start:** with no memory (tasks 1–8), the two arms cost the same.
+- **Ramp:** median tokens drop within the first ~25 tasks, then hold at about a third of baseline for the rest of the run.
+- **Accuracy:** the gain shows up in every fifth of the run, at 11–19 points. The early groups are too small to read a trend in accuracy.
+
 **Bottom line:** at the same model and prompt, adding examples raised hard-task accuracy from 23.5% to 38.6% while using a third of the median tokens per task.
 
 **Caveats for the claim:**

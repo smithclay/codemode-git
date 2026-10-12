@@ -7,6 +7,8 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)
 
+**Code memory for Code Mode agents, on Cloudflare Artifacts.** Throw away the isolate, keep the code.
+
 Every [Code Mode](https://www.npmjs.com/package/@cloudflare/codemode) execution becomes a git commit on that agent's own [Cloudflare Artifacts](https://developers.cloudflare.com/artifacts/) repo. Clone it with plain `git` and `git log -p run.js` is the agent's trajectory.
 
 Optionally, agents learn from each other: each agent's answer-producing run is embedded into [Vectorize](https://developers.cloudflare.com/vectorize/), and a new agent starts with the closest runs other agents committed, as unverified examples. On all 450 tasks of the [DABstep](https://huggingface.co/spaces/adyen/DABstep) data-analysis benchmark, with the same model (glm-5.3-flash) and prompt, adding examples raised accuracy from 32.2% to 46.2% on Adyen's official scorer (hard tasks: 23.5% → 38.6%). It also cut median tokens per task by about two thirds (see [docs/experiments.md](docs/experiments.md)).
@@ -99,7 +101,7 @@ An earlier version distilled runs into a shared library of verified skills with 
 
 ```
 packages/codemode-git/   the plugin: history connector, Artifacts sink, examples (Vectorize)
-examples/agent/          a stock Code Mode agent with a paginated `catalog` connector
+examples/agent/          a stock Code Mode agent with a paginated `lamps` connector (a lava lamp wall)
 benchmarks/dabstep/      DABstep harness: stock Code Mode vs Code Mode + codemode-git
 ```
 
@@ -113,30 +115,38 @@ cf artifacts namespaces create --namespace codemode-git
 cd examples/agent && cf dev
 ```
 
-Then run some code as agent `alice`:
+Then run some code as agent `michelle`:
 
 ```bash
-curl -X POST localhost:8787/agents/alice/execute --data-binary @- <<'EOF'
-// Count lamps in stock across every page
+curl -X POST localhost:8787/agents/michelle/execute --data-binary @- <<'EOF'
+// Count lava lamps that are flowing, across every page of the wall
 async () => {
   let cursor = null, count = 0;
   do {
-    const page = await catalog.search({ category: "lamps", cursor });
-    count += page.items.filter((p) => p.stock > 0).length;
+    const page = await lamps.wall({ cursor });
+    count += page.lamps.filter((l) => l.status === "flowing").length;
     cursor = page.nextCursor;
   } while (cursor);
   return count;
 }
 EOF
-curl localhost:8787/agents/alice/commits
+curl localhost:8787/agents/michelle/commits
 ```
 
 Clone the agent's repo with a read token (use the `plaintext` value up to `?expires=`):
 
 ```bash
-cf artifacts namespaces tokens create codemode-git --repo agent-alice --scope read --ttl 3600
-git -c http.extraHeader="Authorization: Bearer <token>" clone https://<account-id>.artifacts.cloudflare.net/git/codemode-git/agent-alice.git
+cf artifacts namespaces tokens create codemode-git --repo agent-michelle --scope read --ttl 3600
+git -c http.extraHeader="Authorization: Bearer <token>" clone https://<account-id>.artifacts.cloudflare.net/git/codemode-git/agent-michelle.git
 git log --format='%h %s [%(trailers:key=Codemode-Status,valueonly)]'
+```
+
+### Run many agents at once
+
+`scripts/swarm.mjs` starts N agents concurrently. Each one runs one execution and pushes the commit to its own repo, then the script prints commits per second and latency percentiles. Pass `ADMIN_TOKEN` if the Worker requires one.
+
+```bash
+node examples/agent/scripts/swarm.mjs https://codemode-git-example.<subdomain>.workers.dev --agents 1000 --concurrency 200
 ```
 
 ### Deploy it

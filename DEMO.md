@@ -1,5 +1,7 @@
 # Day 3: live demo plan
 
+> **Outdated:** this plan predates the DABstep benchmark and the removal of the curator. A new demo plan is pending.
+
 **The claim the demo must prove:** many agents work at once with no shared repo, no branches and no merge conflicts, and the system still gets *collectively smarter*. What one agent figures out, every later agent can reuse, and every step is a plain git commit you can clone.
 
 **The one chart that proves it:** attempts and tokens per task, wave 1 (no skills) vs wave 2 (skills available), on the same task families with different parameters.

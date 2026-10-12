@@ -1,5 +1,7 @@
 # codemode-git: sketch
 
+> **Note (Oct 11):** this is the original design sketch. The curator and skills library (sections 3 onward) were built, tested on DABstep, and removed in favor of the simpler examples layer; see [README.md](README.md) and [docs/experiments.md](docs/experiments.md).
+
 **Pitch:** A drop-in plugin for `@cloudflare/codemode` that turns every Code Mode execution into a commit on that agent's own Cloudflare Artifacts repo. An *optional* curator subscribes to push events across a whole namespace of agent repos. It mines working code into a shared, verified skill library, which flows back into every agent as Code Mode **snippets**.
 
 Competition brief: *"a new way for hundreds of thousands of agents to work on changes concurrently"*. Deadline **Oct 14**: a 5–10 min demo, open source, run instructions.

@@ -17,7 +17,7 @@ export type GitHistoryOptions = {
   redact?: (exec: ExecutionState) => ExecutionState;
   /** Sandbox namespace for the read-only history tools. Defaults to "history". */
   name?: string;
-  /** Extra `Key: value` trailers for each commit, e.g. the skills ref the agent ran with. */
+  /** Extra `Key: value` trailers for each commit, e.g. the example runs the agent was shown. */
   extraTrailers?: (exec: ExecutionState) => Record<string, string>;
 };
 

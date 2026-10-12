@@ -2,7 +2,7 @@
 
 Every [Code Mode](https://www.npmjs.com/package/@cloudflare/codemode) execution becomes a git commit on that agent's own [Cloudflare Artifacts](https://developers.cloudflare.com/artifacts/) repo. Clone it with plain `git` and `git log -p run.js` is the agent's trajectory.
 
-An optional curator consumes push events across the whole namespace and promotes code that several agents keep writing into a shared, verified skill library. Agents pick skills up as Code Mode snippets. See [SKETCH.md](SKETCH.md) for the full design.
+Optionally, agents learn from each other: each agent's answer-producing run is embedded into [Vectorize](https://developers.cloudflare.com/vectorize/), and a new agent starts with the closest runs other agents committed, as unverified examples. On the [DABstep](https://huggingface.co/spaces/adyen/DABstep) benchmark this cut tokens per task roughly in half without hurting accuracy (see [docs/experiments.md](docs/experiments.md)).
 
 ## Use it in a Code Mode agent
 
@@ -33,44 +33,39 @@ When a run reaches a terminal state (`completed`, `error`, `rejected` or `rolled
 
 The commit message is the run's intent (by default the code's leading `//` comment), followed by `Codemode-Execution`, `Codemode-Status`, `Codemode-Connectors` and `Codemode-Snippets` trailers. The model also gets read-only `history.log()` and `history.show(ref)` tools.
 
-## Shared skills
-
-Export codemode-git's runtime (a subclass of codemode's that adds `installSnippet`) and sync the library:
+## Examples: learning from other agents' runs (optional)
 
 ```ts
-export { CodemodeRuntime } from "codemode-git";
+import { indexExample, retrieveExamples } from "codemode-git";
 
-await syncSkills({ ctx: this.ctx, artifacts: this.env.ARTIFACTS, connectors: ["catalog"] });
+// Before solving: the 3 closest answer-producing runs of other tasks in this scope.
+const examples = await retrieveExamples({ ai: env.AI, index: env.EXAMPLES, scope, question, excludeTask: taskId });
+
+// After solving: the run the answer came from becomes an example for later agents.
+await indexExample({ ai: env.AI, index: env.EXAMPLES, scope, task: taskId, repo, sha, question, code, ok: true });
 ```
 
-Each skill in the `skills` repo becomes a snippet: the model finds it with `codemode.search` and runs it with `codemode.run(name, input)`. Skills that need connectors the agent doesn't have are skipped. Set `extraTrailers` on the history connector to record the skills commit each run saw (`Codemode-Skills-Ref`).
+Each example is a commit (`repo@sha`), so it links back to the full run in that agent's history. Pass them to `GitHistoryConnector`'s `extraTrailers` to record which examples each run saw (`Codemode-Examples`). Show them to the model as *unverified*. In our experiments agents still wrote and ran their own code, but much less of it.
 
-## The curator
-
-[packages/curator](packages/curator) is a separate Worker with one Durable Object per namespace. It is the only writer to the `skills` repo. For each new run commit it:
-
-1. **Ingests** the commit's `run.js`, `calls.jsonl` and `result.json`, and counts reuse of any skills the run called.
-2. **Checks coverage:** if an existing skill already does this, the run is marked covered. Embeddings shortlist the skills, and [Clef](https://huggingface.co/Cloudflare/clef) (`@cf/cloudflare/clef`, Cloudflare's decision model) picks the covering skill or "none".
-3. **Clusters:** embeddings shortlist the nearest run from each other agent, and Clef decides in one call which ones are the same task. At least 3 distinct agents are needed.
-4. **Ranks:** Clef scores how reusable the task is (0 one-off .. 2 broadly reusable). Low scores are skipped, and the published index is ordered by this score.
-5. **Generalizes** the cluster into one `async (input) => ...` snippet with `@cf/moonshotai/kimi-k2.7-code`.
-6. **Verifies by replay:** runs the snippet in a Dynamic Worker against each source run's recorded tool calls, and requires the same calls and the same result. On failure it sends the failures back for one repair round.
-7. **Publishes** `skills/<name>/{snippet.js,meta.json,provenance.json}` and `index.json` to the `skills` repo. The commit lists every source commit.
+**Embeddings** use `@cf/qwen/qwen3-embedding-0.6b` (1024 dimensions). Documents are the raw question plus code; the retrieval instruction goes on the query side only. The Vectorize index needs cosine distance and metadata indexes on `scope` (string), `ok` (boolean) and `task` (string):
 
 ```bash
-cd packages/curator && cf dev -- --port 8788
-curl -X POST localhost:8788/backfill   # walk every agent repo (idempotent)
-curl localhost:8788/status             # runs, skills, reuse counts, recent attempts
+cf vectorize create --name codemode-git-examples --config-dimensions 1024 --config-metric cosine
+for spec in scope:string ok:boolean task:string; do
+  cf vectorize metadata-index create --index-name codemode-git-examples --property-name "${spec%%:*}" --index-type "${spec##*:}"
+done
 ```
 
-`POST /events` accepts `cf.artifacts.repo.pushed` events directly. The deployed Worker also consumes them from a queue.
+Vectorize is eventually consistent. New vectors are queryable after ~30s, but metadata filters see them only after ~1–2 minutes.
+
+An earlier version distilled runs into a shared library of verified skills with a curator Worker. Agents copied a skill's wrong interpretation along with its code, so errors became correlated across agents (see [docs/experiments.md](docs/experiments.md)). It was removed; it's in git history before `af8fa3d`.
 
 ## Layout
 
 ```
-packages/codemode-git/   the plugin: history connector, Artifacts sink, runtime + syncSkills
-packages/curator/        the optional curator Worker
+packages/codemode-git/   the plugin: history connector, Artifacts sink, examples (Vectorize)
 examples/agent/          a stock Code Mode agent with a paginated `catalog` connector
+benchmarks/dabstep/      DABstep harness: stock Code Mode vs Code Mode + codemode-git
 ```
 
 ## Run the example

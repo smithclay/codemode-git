@@ -1,6 +1,6 @@
 // The on-disk shape of one Code Mode execution. Shared by the agent-side
-// plugin (which writes it) and the curator (which reads it back), so this
-// module stays free of Workers-only imports.
+// plugin (which writes it) and anything that reads agent history back, so
+// this module stays free of Workers-only imports.
 
 import type { ExecutionEndStatus, ExecutionState } from "@cloudflare/codemode";
 
@@ -15,7 +15,6 @@ export const TRAILERS = {
   status: "Codemode-Status",
   connectors: "Codemode-Connectors",
   snippets: "Codemode-Snippets",
-  skillsRef: "Codemode-Skills-Ref",
   /** Example runs (repo@sha) the agent was shown before it started. */
   examples: "Codemode-Examples",
   /** On a marker commit: the sha of the run that produced the agent's final result. */
@@ -80,8 +79,8 @@ export function toCommit(
 
 /**
  * A marker commit saying which earlier run produced the agent's final result,
- * e.g. the answer to its task. Lets a curator learn from solutions rather than
- * from every exploratory step.
+ * e.g. the answer to its task. Lets readers (like the examples index) learn
+ * from solutions rather than from every exploratory step.
  */
 export function toFinalCommit(runSha: string, title: string, files: Record<string, string>): CommitContent {
   return {

@@ -1,8 +1,8 @@
 import { CodemodeConnector, type ConnectorTools } from "@cloudflare/codemode";
 
 // A deterministic fake product catalog. Results are paginated on purpose:
-// "walk every page" is the kind of sub-problem many agents re-solve, which
-// is what the curator should later notice and turn into a shared skill.
+// "walk every page" is the kind of sub-problem many agents re-solve, so it
+// shows up again and again across agents' git histories.
 
 type Product = { id: number; name: string; category: string; price: number; stock: number };
 

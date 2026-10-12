@@ -1,6 +1,6 @@
 import { agentKey, Solver, type Env, type SolveRequest } from "./solver";
 
-export { CodemodeRuntime } from "codemode-git";
+export { CodemodeRuntime } from "@cloudflare/codemode";
 export { Solver };
 
 type FullEnv = Env & {

@@ -34,7 +34,10 @@ const { values: opts } = parseArgs({
     // Examples arm: wait between waves so new examples become filterable in Vectorize (~1-2 min).
     settle: { type: "string", default: "120" },
     // Rolling concurrency instead of lockstep waves (used for the full run).
-    rolling: { type: "boolean", default: false }
+    rolling: { type: "boolean", default: false },
+    // Spend guard: stop launching new tasks once finished tasks in this
+    // invocation have used this many tokens (~$0.12 per million on glm-5.3-flash).
+    "budget-tokens": { type: "string", default: "175000000" }
   }
 });
 if (!opts.run || !["baseline", "codemode-git-examples"].includes(opts.arm)) {
@@ -115,7 +118,12 @@ async function solve(task) {
 const size = Number(opts.concurrency);
 const byKey = new Map(tasks.map((t) => [keyOf(t), t]));
 
+let tokensUsed = 0;
+const budget = Number(opts["budget-tokens"]);
+const overBudget = () => tokensUsed >= budget;
+
 function record(r) {
+  tokensUsed += r.tokens.input + r.tokens.output;
   appendFileSync(out, `${JSON.stringify({ ...r, level: byKey.get(keyOf(r))?.level })}\n`);
   console.log(
     `  t${r.task_id}#${r.repeat}: ${JSON.stringify(r.answer).slice(0, 50)} · ${r.executions} runs, ${r.errors} errors, ` +
@@ -135,7 +143,7 @@ if (opts.rolling) {
     Array.from({ length: Math.min(size, tasks.length) }, async (_, slot) => {
       // Stagger the first launches a little to smooth Workers AI rate limits.
       await new Promise((r) => setTimeout(r, slot * 2000));
-      while (next < tasks.length) {
+      while (next < tasks.length && !overBudget()) {
         const r = await solve(tasks[next++]);
         if (r) record(r);
       }
@@ -143,7 +151,7 @@ if (opts.rolling) {
   );
 } else {
   console.log(`${opts.run}/${opts.arm}: ${tasks.length} tasks, waves of ${size}, model ${opts.model}`);
-  for (let i = 0; i < tasks.length; i += size) {
+  for (let i = 0; i < tasks.length && !overBudget(); i += size) {
     const wave = tasks.slice(i, i + size);
     const results = await Promise.all(
       wave.map(async (task, j) => {
@@ -159,4 +167,5 @@ if (opts.rolling) {
     }
   }
 }
+if (overBudget()) console.log(`STOPPED: token budget reached (${tokensUsed.toLocaleString()} of ${budget.toLocaleString()}); rerun to resume`);
 console.log(`wrote ${out}`);

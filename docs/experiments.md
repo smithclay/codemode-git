@@ -47,3 +47,39 @@ Lesson: replay verification certifies reproducibility, not correctness, and a sh
 - a semantics ledger;
 - unit tests derived from the manual;
 - not exposing a skill's full source by default.
+
+## tpl36b: examples vs fresh baseline (48 tasks per arm)
+
+**Design:** same slice and task order as tpl36a. The examples arm retrieves the 3 nearest answer-producing runs from *other* tasks in the same run (Vectorize, qwen3-embedding, question + code) and shows them as unverified examples. There is no curator. The arm pauses 120s between waves so new examples become filterable. The baseline was re-run fresh alongside it.
+
+| Per task | Baseline | Examples | Paired diff (95% CI) |
+|---|---|---|---|
+| Code runs | 15.3 | 8.5 | −6.8 [−9.1, −4.5] |
+| Model steps | 12.8 | 7.7 | −5.0 [−6.6, −3.4] |
+| Tokens (mean / median) | 215k / 168k | 106k / 62k | −109k [−150k, −71k] |
+| Seconds (mean / median) | 308 / 267 | 233 / 133 | −75 [−150, −0.5] |
+| Step-limit exhaustion | 6% | 2% | n.s. |
+| Graded accuracy | 8/18 | 14/18 | discordant 0 vs 6 |
+
+The fresh baseline reproduced tpl36a's baseline accuracy (8/18).
+
+**Graded accuracy per dev task (3 repeats each):**
+
+| Task | Baseline | Skills (tpl36a) | Examples |
+|---|---|---|---|
+| t1681 | ✓✓✓ | ✗✓✗ | ✓✓✓ |
+| t1464 | ✗✗✗ | ✗✗✗ | ✓✓✓ |
+| t1871 | ✓✓✗ | ✓✓✓ | ✓✓✓ |
+| t1273 | ✓✗✓ | ✗✓✗ | ✓✓✓ |
+| t1753 | ✗✗✓ | ✗✗✓ | ✓✗✓ |
+| t2697 | ✗✗✗ | ✗✗✗ | ✗✗✗ |
+
+**Examples vs skills (tpl36a):**
+- Examples are also cheaper than skills: −2.5 code runs [−4.2, −0.9] and −63k tokens [−104k, −24k].
+- Accuracy was 14/18 vs 6/18.
+- The skills arm's contagion task t1681 went 3/3 with examples. Agents read other runs' code, but still wrote and ran their own.
+
+**Caveats:**
+- The 18 graded trials are 6 tasks × 3 repeats, which are correlated. At the task level, examples improved 4 tasks and worsened none (sign test p≈0.13).
+- Trial-level McNemar (6 vs 0, p≈0.03) overstates the evidence.
+- Wave 1 had no examples, yet already differed by 36% in tokens, consistent with the ~30% between-arm noise seen in ab25a.

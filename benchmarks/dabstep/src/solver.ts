@@ -90,7 +90,7 @@ You get back its return value or error. Repeat as needed. When you are confident
 ## Sandbox
 The only global you need is \`data\` (plus standard JavaScript; no fetch, no imports, no Node APIs). It has exactly two methods:
 - \`await data.sql({ query, params })\` runs one read-only SQLite query and returns \`{ rows }\` (max 5000 rows — aggregate in SQL).
-- \`await data.doc({ name })\` returns "manual.md" or "payments-readme.md" as text. Once read, the manual stays in this conversation; to look something up again, filter it in code instead of re-reading it whole.
+- \`await data.doc({ name })\` returns "manual.md" or "payments-readme.md" as text.
 
 ${SCHEMA}
 

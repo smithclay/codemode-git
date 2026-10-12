@@ -2,53 +2,58 @@
 
 **Due:** Oct 14, 2026, 11:59 PM PDT. The video must be 5–10 min, in MP4, WebM or MOV, under 2 GiB. Target **8:00** so there's room to spare. Form answers are drafted in [docs/submission.md](docs/submission.md).
 
-**Thesis:** self-improving Code Mode agents, with git as their memory.
-- Code Mode is great for investigations: the model writes code that calls tools and works through the data.
-- **Phase 1 (durable):** every Code Mode execution becomes a commit, so an investigation is no longer thrown away when the run ends.
-- **Phase 2 (learning):** agents read that memory, their own and other agents', and get better over time.
-- GitHub here is headless: no UI, no humans in the loop. Git is the storage and retrieval layer for agent experience.
+## The one-two punch
 
-**What we're not pitching:** a reimagined GitHub experience, with branches, PRs or merge UIs for agents. Many entries will do that. The git layer here is infrastructure the agents use, not a product humans browse.
+1. **Code Mode (Cloudflare's insight).** Models are better at writing code than at calling tools one at a time. In Code Mode the agent writes one function that chains tool calls, and Cloudflare calls that code "a compact plan" ([Code Mode MCP post](https://blog.cloudflare.com/code-mode-mcp/)). Each snippet runs in a fresh isolate, which is then thrown away ([Dynamic Workers post](https://blog.cloudflare.com/dynamic-workers/)).
+2. **Code memory (ours).** If the code is the plan, then the code an agent writes over time is its experience, and today it's thrown away with the isolate. We keep it:
+   - **Phase 1, durable:** every Code Mode execution is saved to the agent's own Cloudflare Artifacts repo.
+   - **Phase 2, learning:** Workers AI embeddings and Vectorize let the next agent start from the closest code other agents already ran. That measurably improves agent outcomes.
+
+**Tagline:** throw away the isolate, keep the code.
+
+**Vocabulary:** say "Cloudflare Artifacts" and "code memory", not "git". Artifacts speaks Git, so mention once that any git client can read it, and move on. We are not pitching a reimagined GitHub.
 
 ## What the judges score, and where the video covers it
 
 | Criterion (1–5 each) | Weight | Where it lands |
 |---|---|---|
-| Originality and quality of the prototype for agent-oriented software collaboration | 50% | Agents that improve by reading each other's committed work: the learning curve, the official benchmark result, and what kind of memory works (raw runs, not distilled skills) |
-| Concurrency, coordination, context preservation, review, conflict handling | 25% | Context preservation is the whole of Phase 1. Concurrency: the swarm burst, with one writer per repo and no conflicts. Coordination: retrieval plus provenance trailers. Review: memory is shown as unverified, and every example links to its source commit |
-| Ease of use and product experience | 25% | Three lines in an existing Code Mode agent, `npm install`, the Deploy button, plain `git clone` |
-
-## Presentation principles
-
-- **Lead with the curve, not the platform.** The memorable image is agents getting cheaper and better as memory accumulates. Cloudflare products serve that story.
-- **Use Cloudflare's own framing where it helps.** "Agents know Git" and one repo per agent are both from their Artifacts launch post. We use those repos as memory, and nobody has to look at them.
-- **Show the whole platform once, on one architecture slide.** The 2024 Cloudflare AI Challenge winner was praised for using a wide range of Cloudflare products. We use eight.
-- **Show the quality-control finding.** We tested two kinds of memory. Distilled, verified skills made agents wrong together. Raw runs shown as unverified worked. That's a real, measured insight about agent memory.
-- **Make it work as a 10-minute live talk too.** Finalists present at Connect (Oct 21). Keep every beat runnable live, with recordings as a backup.
+| Originality and quality of the prototype for agent-oriented software collaboration | 50% | Code memory as the next step after Code Mode. The alice→bob walkthrough. The learning curve and official benchmark result. Which memory works |
+| Concurrency, coordination, context preservation, review, conflict handling | 25% | Context preservation is Phase 1. Concurrency: the swarm, with one writer per Artifacts repo and no conflicts. Coordination: retrieval plus provenance. Review: memory is shown as unverified, and every example links to its source |
+| Ease of use and product experience | 25% | Three lines in an existing Code Mode agent, `npm install`, the Deploy button |
 
 ## Run of show (~8:00)
 
 | Time | Beat | On screen | Voiceover (draft) |
 |---|---|---|---|
-| 0:00–0:40 | **Hook** | The learning curve: median tokens per task across the run, baseline flat, memory arm dropping within the first few dozen tasks | "These agents get better as they work. For the first eight tasks, both arms cost the same. Once agents could read each other's past investigations, median cost per task fell to about a third and stayed there. Accuracy went from 32 to 46 percent on Adyen's official scorer. Same model, same prompt. The difference is memory, and the memory is git." |
-| 0:40–1:30 | **Why Code Mode needs memory** | A Code Mode run: the model writes code, it calls tools, the result comes back, and the code is discarded | "Code Mode lets a model write code against your tools instead of making one tool call at a time. It's great for investigations. But each investigation is thrown away when the run ends. The next agent with the same question starts from zero. Every agent is on day one, forever." |
-| 1:30–2:50 | **Phase 1: durable Code Mode** | The three-line diff. A `curl` execute call. Then `git clone` an agent's repo and `git log -p run.js`, with the `Codemode-*` trailers highlighted | "Add one connector. Every execution becomes a commit on that agent's own Artifacts repo: the code it ran, every tool call with its result, and the outcome. That's a durable, inspectable record of what the agent tried. Agents can read it back with `history.log` and `history.show`, and you can `git clone` it with plain git. Nobody has to open a GitHub UI. Git is the storage." |
-| 2:50–3:40 | **Memory at fleet scale** | Terminal running `scripts/swarm.mjs`, then the summary JSON. Artifacts dashboard metrics | "Here are [1,000] agents at once: [1,000] Durable Objects, each writing its own memory to its own repo, [N] commits a second, zero conflicts. Each agent is the only writer to its repo, so there's nothing to lock and nothing to merge." |
-| 3:40–5:10 | **Phase 2: learning from memory** | Diagram: commit → embed question + code → Vectorize. New agent → 3 closest runs from *other* tasks → prompt, as unverified examples. Then a real commit with a `Codemode-Examples:` trailer, and `git show` of the referenced commit in another agent's repo | "When an agent's run produces an answer, that run is embedded. A new agent starts with the three closest runs other agents committed, labeled unverified. It still writes and runs its own code, just much less of it. Every example is a `repo@sha`, and the trailer records exactly which memories each run used." |
-| 5:10–6:10 | **What kind of memory works** | Two columns: "distilled skills (verified, shared)" vs "raw runs (unverified, per agent)". The fee-454 example | "Our first design distilled runs into a shared library of verified skills. It sounds better, but it made agents wrong together. One skill passed verification by reproducing two wrong runs, and later agents copied it and got the same answer wrong. Consolidated memory spreads errors. So we kept the raw, episodic record: real runs, clearly labeled, with a link back to the source." |
-| 6:10–7:10 | **Results** | Accuracy by level (easy, hard, overall). Learning-curve table. Small table: code runs 13.8 → 9.4, step-limit exhaustion 13% → 7%, Workers AI spend $26.76 | "All 450 DABstep tasks, scored by Adyen: hard tasks from 23.5 to 38.6 percent. Agents ran out of steps half as often and needed a third fewer code runs. Caveats: one run per arm, and memory comes from earlier runs in the same pass, with no answers or labels." |
-| 7:10–8:00 | **Use it, and what's next** | `npm install @smithclay/codemode-git`, the Deploy button, the architecture slide with all eight products. Closing line | "It's a package on npm, three lines in a Code Mode agent, and a Deploy to Cloudflare button. Next: index runs as they're pushed, using Artifacts events; record outcomes as git-notes; and let agents mine their own history between tasks. Code Mode made agents good at investigating. Git makes them remember, and that's how they get better." |
+| 0:00–0:30 | **Cold open** | Split screen. Agent alice: "How many lamps are in stock?", taking [N] executions to work out pagination. Agent bob: "How many chairs are in stock?", taking one execution | "Two Code Mode agents, two similar questions. The first one figures it out the hard way. The second gets it right the first time, because it can read the code the first one wrote. This is codemode-git: code memory for Code Mode agents, on Cloudflare Artifacts." |
+| 0:30–1:30 | **Punch 1: why Code Mode** | Left: the same task as a chain of individual tool calls, each result going back through the model. Right: one function that walks every page of `catalog.search` and returns a number | "Cloudflare's Code Mode insight: models are much better at writing code than at calling tools one at a time. They've seen millions of real programs. So instead of ten tool calls, the agent writes one function: loop over the pages, filter, count, return. Cloudflare calls that code a compact plan." |
+| 1:30–2:00 | **The gap** | The isolate lifecycle: load → run → discard. The code fades out with it | "Each plan runs in a fresh isolate that's thrown away afterward, which is exactly right for the sandbox. But the plan goes too. The next agent with the same kind of question starts from zero." |
+| 2:00–3:15 | **Punch 2, Phase 1: code memory on Artifacts** | The three-line diff. alice's Artifacts repo: `run.js`, `calls.jsonl`, `result.json`, with the `Codemode-*` trailers in the commit message. One shot of `git clone` | "Add one connector. Every execution is saved to that agent's own Cloudflare Artifacts repo: the code it ran, every tool call with its result, and the outcome. Artifacts gives every agent its own repo, at any scale. It speaks Git, so any git client can read it, but nobody has to. Agents read their own history back with two tools." |
+| 3:15–3:45 | **Memory at fleet scale** | `scripts/swarm.mjs` summary. Artifacts dashboard metrics | "[1,000] agents at once: [1,000] Durable Objects, each writing to its own Artifacts repo, [N] runs saved per second, zero conflicts. Each agent is the only writer to its repo, so there's nothing to lock and nothing to merge." |
+| 3:45–5:00 | **Phase 2: learning from code memory** | Diagram: saved run → Workers AI embedding of question + code → Vectorize. bob's question → nearest runs → prompt, labeled unverified. bob's commit with `Codemode-Examples: agent-alice@<sha>`, then alice's run it points to | "When a run produces an answer, Workers AI embeds the question and the code into Vectorize. bob's question is similar to alice's, so bob starts with alice's code, labeled unverified. bob still writes and runs his own code, but he already knows the catalog is paginated. His saved run records exactly which memory he used, so every answer traces back to the code that informed it." |
+| 5:00–6:50 | **Deep dive: the benchmark** | DABstep: 450 payments-analysis tasks from Adyen. Learning-curve chart. Official accuracy by level. Small table: code runs 13.8 → 9.4, step-limit exhaustion 13% → 7%, Workers AI spend $26.76. Then a two-column slide: distilled skills vs raw runs | "Does it hold up on real investigations? DABstep is 450 data-analysis tasks over Adyen's payments data, the kind of work Code Mode is built for. Same model, same prompt, scored by Adyen's official scorer. Accuracy goes from 32 to 46 percent, and from 23.5 to 38.6 on hard tasks. The curve shows the learning. For the first eight tasks there's no memory, and both arms cost the same. Within about 25 tasks, the memory arm's median cost falls to about a third of baseline and stays there. One more finding: we first distilled runs into verified, shared skills. That made agents wrong together, because one bad skill spread. Raw runs, labeled unverified, worked better." |
+| 6:50–8:00 | **Use it, what's next, close** | `npm install @smithclay/codemode-git`, the three lines, the Deploy to Cloudflare button. An architecture slide: Workers, Worker Loader, Durable Objects, Artifacts, Workers AI, Vectorize, cf CLI, Workers Builds. Closing line | "It's on npm. It's three lines in a Code Mode agent, plus a Deploy to Cloudflare button. Next: index runs as they're pushed, using Artifacts events, and record outcomes alongside the code. Code Mode made code the way agents act. Artifacts makes it the way they remember. Throw away the isolate. Keep the code." |
+
+## The walkthrough (alice → bob)
+
+This uses the example's `catalog` connector, which has 47 products in 5 categories, returns 10 items per page, and gives a `nextCursor` for the next page.
+
+1. **alice** asks "How many lamps are in stock?" with an empty memory. She writes Code Mode code, may stop at the first page, notices `nextCursor`, and loops. Each attempt is a saved run in `agent-alice`. Record her executions and tokens.
+2. Her answer-producing run is embedded into Vectorize.
+3. **bob** asks "How many chairs are in stock?" He retrieves alice's run as an unverified example and writes the paginated loop on his first try. His saved run carries `Codemode-Examples: agent-alice@<sha>`. Record his executions and tokens.
+4. **On screen:** both runs side by side, with executions and tokens per agent.
+
+**Needs:** the example agent can currently only run code it's handed. The walkthrough needs a small model loop in the example, `POST /agents/:name/ask`, plus Workers AI and Vectorize bindings. It would be a trimmed port of the benchmark's loop in `benchmarks/dabstep/src/solver.ts`. Not built yet.
 
 ## Assets to capture
 
-- [ ] **Learning curve chart:** median tokens per task by run position, both arms. See "Learning curve" in [docs/experiments.md](docs/experiments.md).
-- [ ] **Three-line diff:** the stock Code Mode example with the connector added, from the README.
-- [ ] **Live execute → commit:** a `curl` execute, then `GET /commits` showing the sha.
-- [ ] **`git clone` an agent repo with a read token,** then `git log -p run.js`.
-- [ ] **Swarm burst:** run against the deployed example. Record both the terminal and the Artifacts dashboard. Fill in the bracketed numbers in the script.
-- [ ] **Provenance hop:** a DABstep examples-arm commit with `Codemode-Examples:`, then `git show` of the referenced commit in another agent's repo.
-- [ ] **Accuracy chart:** accuracy by level, from [docs/experiments.md](docs/experiments.md).
-- [ ] **Architecture slide:** Workers, Durable Objects (SQLite), Artifacts, Worker Loader, Workers AI, Vectorize, the cf CLI, and Workers Builds through the Deploy button.
+- [ ] **alice → bob walkthrough:** both runs, with executions and tokens. Needs the `ask` endpoint.
+- [ ] **Code Mode contrast:** tool-call-by-tool-call vs one function. A static slide is fine.
+- [ ] **Three-line diff,** from the README.
+- [ ] **alice's Artifacts repo:** files and trailers, plus one `git clone`.
+- [ ] **Swarm burst:** run against the deployed example. Record both the terminal and the Artifacts dashboard. Fill in the bracketed numbers.
+- [ ] **Learning curve and accuracy charts,** from [docs/experiments.md](docs/experiments.md).
+- [ ] **Architecture slide** with all eight products.
 
 ## Swarm burst
 
@@ -57,11 +62,11 @@ cd examples/agent
 ADMIN_TOKEN=... node scripts/swarm.mjs https://codemode-git-example.<subdomain>.workers.dev --agents 1000 --concurrency 200
 ```
 
-Each agent is `agent-swarm-<run>-<i>`: one Durable Object, one repo and one commit. The script prints repos with a commit, errors, wall time, commits per second, and p50/p95 for execute, push and total. Run it before Oct 15, when Artifacts billing starts. Start with `--agents 50` to check the setup.
+Each agent is `agent-swarm-<run>-<i>`: one Durable Object, one Artifacts repo and one saved run. The script prints repos with a run, errors, wall time, runs per second, and p50/p95 for execute, push and total. Run it before Oct 15, when Artifacts billing starts. Start with `--agents 50` to check the setup.
 
 ## Pre-flight
 
 - [ ] Deployed example on a fresh Artifacts namespace, with `ADMIN_TOKEN` set.
-- [ ] Swarm at 50 agents, then 1,000. Note any rate limits or push errors.
+- [ ] Swarm at 50 agents, then 1,000.
 - [ ] Rehearse once against the clock, aiming for 7:30–8:30.
 - [ ] Export to MP4 under 2 GiB, then submit at [cloudflare.com/git-competition/submit](https://www.cloudflare.com/git-competition/submit).

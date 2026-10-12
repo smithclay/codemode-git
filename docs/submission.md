@@ -12,13 +12,13 @@ codemode-git
 
 ## Project vision
 
-Self-improving Code Mode agents, with git as their memory.
+Code memory for Code Mode agents, on Cloudflare Artifacts. Throw away the isolate, keep the code.
 
-Code Mode lets a model write code against its tools, which makes agents good at investigations. But every investigation is thrown away when the run ends, so each new agent starts from zero. codemode-git makes that layer durable, then learns from it.
+Code Mode showed that models do better when they write code against their tools than when they call tools one at a time. Each snippet runs in a fresh isolate that's thrown away afterward, and the code goes with it. That code is the agent's plan, and over time it's the agent's experience. We think it's worth keeping, and that learning from it measurably improves agent outcomes.
 
-**Phase 1, durable:** every Code Mode execution becomes a commit on the agent's own Cloudflare Artifacts repo: the code, every tool call with its result, and the outcome. Each agent is the only writer to its repo, so thousands can run at once without locks or merges. Agents read their history back through tools, and people can `git clone` it. GitHub here is headless: git is the memory layer, not a UI.
+**Phase 1, code memory:** every Code Mode execution is saved to the agent's own Cloudflare Artifacts repo: the code, every tool call with its result, and the outcome. Each agent is the only writer to its repo, so thousands of agents run at once without locks or merges. Agents read their history back through tools, and since Artifacts speaks Git, any git client can read it too.
 
-**Phase 2, learning:** each answer-producing run is embedded into Vectorize. A new agent starts with the closest runs other agents committed, shown as unverified examples, and a commit trailer records which memories each run used.
+**Phase 2, learning:** Workers AI embeds each answer-producing run's question and code into Vectorize. A new agent starts with the closest runs other agents saved, shown as unverified examples, and each run records which memories it used.
 
 On all 450 tasks of Adyen's DABstep benchmark, with the same model and prompt, scored by Adyen's official scorer:
 - **Accuracy:** 32.2% → 46.2% overall, and 23.5% → 38.6% on hard tasks.

@@ -1,0 +1,17 @@
+// Mirrors cloudflare.config.ts for the Deploy to Cloudflare button, which only
+// reads Wrangler config. `cf dev` / `cf deploy` use cloudflare.config.ts; keep both in sync.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "codemode-git-example",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "durable_objects": {
+    "bindings": [{ "name": "AGENT", "class_name": "CodeAgent" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CodeAgent"] }],
+  // One repo per agent in this namespace.
+  "artifacts": [{ "binding": "ARTIFACTS", "namespace": "codemode-git" }],
+  "worker_loaders": [{ "binding": "LOADER" }]
+}

@@ -103,15 +103,26 @@ async function solveOnce(task, attempt) {
   return res.json();
 }
 
+// The connection dropped but the agent may still be running: call the same
+// agent again, which joins its run (or returns its stored result).
+const RECONNECTABLE = /fetch failed|network connection lost|connection closed|socket|ECONNRESET/i;
+const MAX_RECONNECTS = 6;
+
 /** Infrastructure failures are retried with a fresh agent, so results aren't biased toward easy tasks. */
 async function solve(task) {
   for (let attempt = 1; ; attempt++) {
-    try {
-      return { ...(await solveOnce(task, attempt)), attempt };
-    } catch (err) {
-      console.error(`  t${task.task_id}#${task.repeat} attempt ${attempt} failed: ${err.message}`);
-      if (attempt >= MAX_ATTEMPTS) return null;
+    for (let reconnect = 0; ; reconnect++) {
+      try {
+        return { ...(await solveOnce(task, attempt)), attempt };
+      } catch (err) {
+        const cause = err.cause ? ` (${err.cause.code ?? err.cause.message ?? err.cause})` : "";
+        const again = RECONNECTABLE.test(err.message) && reconnect < MAX_RECONNECTS;
+        console.error(`  t${task.task_id}#${task.repeat} attempt ${attempt} failed: ${err.message}${cause}${again ? "; reconnecting" : ""}`);
+        if (!again) break;
+        await new Promise((r) => setTimeout(r, Number(process.env.RECONNECT_MS ?? 10_000)));
+      }
     }
+    if (attempt >= MAX_ATTEMPTS) return null;
   }
 }
 

@@ -46,4 +46,8 @@ describe("agent loop parsing", () => {
     expect(malformedAnswer("36, 51, 53, 64")).toBe(false);
     expect(malformedAnswer("Not Applicable")).toBe(false);
   });
+
+  it("clips results containing BigInt instead of throwing", () => {
+    expect(clip({ n: 12345678901234567890n })).toBe('{"n":"12345678901234567890"}');
+  });
 });

@@ -202,7 +202,11 @@ export function malformedAnswer(answer: string): boolean {
 
 export function clip(value: unknown): string {
   // JSON.stringify(undefined) is undefined: code that returns nothing.
-  const text = typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
+  // SQLite integers can come back as BigInt, which JSON.stringify rejects.
+  const text =
+    typeof value === "string"
+      ? value
+      : (JSON.stringify(value, (_, v) => (typeof v === "bigint" ? v.toString() : v)) ?? String(value));
   return text.length > MAX_FEEDBACK_CHARS ? `${text.slice(0, MAX_FEEDBACK_CHARS)}… (truncated, ${text.length} chars)` : text;
 }
 
@@ -218,7 +222,28 @@ export class Solver extends DurableObject<Env> {
     return selfTest(runtime, { ai: this.env.AI, index: this.env.EXAMPLES });
   }
 
+  #inflight?: Promise<SolveResult>;
+
+  /**
+   * Idempotent per agent: if the caller's connection drops and it calls again,
+   * it joins the run already in progress (or gets the stored result) instead
+   * of starting over.
+   */
   async solve(req: SolveRequest): Promise<SolveResult> {
+    const done = await this.ctx.storage.get<SolveResult>("result");
+    if (done) return done;
+    this.#inflight ??= this.#solve(req)
+      .then(async (result) => {
+        await this.ctx.storage.put("result", result);
+        return result;
+      })
+      .finally(() => {
+        this.#inflight = undefined;
+      });
+    return this.#inflight;
+  }
+
+  async #solve(req: SolveRequest): Promise<SolveResult> {
     const started = Date.now();
     const { task, arm, model, run } = req;
     const maxSteps = req.maxSteps ?? 20;

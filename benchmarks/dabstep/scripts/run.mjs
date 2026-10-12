@@ -4,7 +4,8 @@
 //   node scripts/run.mjs --run dev1 --arm codemode-git --model @cf/zai-org/glm-5.3-flash \
 //     --split dev --concurrency 5 [--tasks 5,49] [--limit 25] [--url http://localhost:8790]
 //
-// Tasks go out in waves of --concurrency fresh agents. In the codemode-git arm
+// Tasks go out in waves of --concurrency fresh agents (or, with --rolling, a
+// new agent starts whenever one finishes). In the codemode-git arm
 // the run's curator ingests each finished wave before the next one starts, so
 // later waves can reuse skills learned from earlier ones. Results are appended
 // to results/<run>-<arm>.jsonl (resumable: finished task ids are skipped).
@@ -31,7 +32,9 @@ const { values: opts } = parseArgs({
     concurrency: { type: "string", default: "5" },
     "max-steps": { type: "string", default: "20" },
     // Examples arm: wait between waves so new examples become filterable in Vectorize (~1-2 min).
-    settle: { type: "string", default: "120" }
+    settle: { type: "string", default: "120" },
+    // Rolling concurrency instead of lockstep waves (used for the full run).
+    rolling: { type: "boolean", default: false }
   }
 });
 if (!opts.run || !["baseline", "codemode-git", "codemode-git-examples"].includes(opts.arm)) {
@@ -81,7 +84,10 @@ async function solveOnce(task, attempt) {
       repeat,
       attempt,
       maxSteps: Number(opts["max-steps"])
-    })
+    }),
+    // A connection the worker drops without closing would otherwise hang the
+    // whole wave; treat it as a failed attempt and retry with a fresh agent.
+    signal: AbortSignal.timeout(20 * 60 * 1000)
   });
   if (!res.ok) {
     const body = await res.text();
@@ -107,33 +113,62 @@ async function solve(task) {
 }
 
 const size = Number(opts.concurrency);
-console.log(`${opts.run}/${opts.arm}: ${tasks.length} tasks, waves of ${size}, model ${opts.model}`);
-for (let i = 0; i < tasks.length; i += size) {
-  const wave = tasks.slice(i, i + size);
-  const results = await Promise.all(
-    wave.map(async (task, j) => {
-      // Stagger launches a little to smooth Workers AI rate limits.
-      await new Promise((r) => setTimeout(r, j * 2000));
-      return solve(task);
+const byKey = new Map(tasks.map((t) => [keyOf(t), t]));
+
+function record(r) {
+  appendFileSync(out, `${JSON.stringify({ ...r, level: byKey.get(keyOf(r))?.level })}\n`);
+  console.log(
+    `  t${r.task_id}#${r.repeat}: ${JSON.stringify(r.answer).slice(0, 50)} · ${r.executions} runs, ${r.errors} errors, ` +
+      `${r.exhausted ? "EXHAUSTED, " : ""}` +
+      `${r.tokens.input + r.tokens.output} tok${r.skillsUsed.length ? ` · skills ${r.skillsUsed.join(",")}` : ""}` +
+      `${r.examplesOffered?.length ? ` · ${r.examplesOffered.length} examples` : ""}`
+  );
+}
+
+async function curate() {
+  const res = await fetch(`${opts.url}/curate/${opts.run}/backfill`, { method: "POST", headers: auth });
+  const c = res.ok ? await res.json() : { error: await res.text() };
+  console.log(`  curator: ${JSON.stringify(c)}`);
+}
+
+if (opts.rolling) {
+  // Keep `size` agents busy: a new task starts as soon as any finishes, so one
+  // slow task never idles the other slots. Results are written as they land.
+  // Examples become retrievable as soon as Vectorize indexes them (no settle);
+  // the skills curator runs (serialized, in the background) every `size` results.
+  console.log(`${opts.run}/${opts.arm}: ${tasks.length} tasks, rolling concurrency ${size}, model ${opts.model}`);
+  let next = 0;
+  let finished = 0;
+  let curating = Promise.resolve();
+  await Promise.all(
+    Array.from({ length: Math.min(size, tasks.length) }, async (_, slot) => {
+      // Stagger the first launches a little to smooth Workers AI rate limits.
+      await new Promise((r) => setTimeout(r, slot * 2000));
+      while (next < tasks.length) {
+        const r = await solve(tasks[next++]);
+        if (r) record(r);
+        if (opts.arm === "codemode-git" && ++finished % size === 0) curating = curating.then(curate, curate);
+      }
     })
   );
-  for (const r of results.filter(Boolean)) {
-    appendFileSync(out, `${JSON.stringify({ ...r, level: wave.find((t) => t.task_id === r.task_id)?.level })}\n`);
-    console.log(
-      `  t${r.task_id}#${r.repeat}: ${JSON.stringify(r.answer).slice(0, 50)} · ${r.executions} runs, ${r.errors} errors, ` +
-        `${r.exhausted ? "EXHAUSTED, " : ""}` +
-        `${r.tokens.input + r.tokens.output} tok${r.skillsUsed.length ? ` · skills ${r.skillsUsed.join(",")}` : ""}` +
-        `${r.examplesOffered?.length ? ` · ${r.examplesOffered.length} examples` : ""}`
+  await curating;
+} else {
+  console.log(`${opts.run}/${opts.arm}: ${tasks.length} tasks, waves of ${size}, model ${opts.model}`);
+  for (let i = 0; i < tasks.length; i += size) {
+    const wave = tasks.slice(i, i + size);
+    const results = await Promise.all(
+      wave.map(async (task, j) => {
+        // Stagger launches a little to smooth Workers AI rate limits.
+        await new Promise((r) => setTimeout(r, j * 2000));
+        return solve(task);
+      })
     );
-  }
-  if (opts.arm === "codemode-git-examples" && i + size < tasks.length) {
-    console.log(`  waiting ${opts.settle}s for examples to become searchable`);
-    await new Promise((r) => setTimeout(r, Number(opts.settle) * 1000));
-  }
-  if (opts.arm === "codemode-git") {
-    const res = await fetch(`${opts.url}/curate/${opts.run}/backfill`, { method: "POST", headers: auth });
-    const c = res.ok ? await res.json() : { error: await res.text() };
-    console.log(`  curator: ${JSON.stringify(c)}`);
+    results.filter(Boolean).forEach(record);
+    if (opts.arm === "codemode-git-examples" && i + size < tasks.length) {
+      console.log(`  waiting ${opts.settle}s for examples to become searchable`);
+      await new Promise((r) => setTimeout(r, Number(opts.settle) * 1000));
+    }
+    if (opts.arm === "codemode-git") await curate();
   }
 }
 console.log(`wrote ${out}`);

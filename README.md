@@ -139,6 +139,14 @@ git -c http.extraHeader="Authorization: Bearer <token>" clone https://<account-i
 git log --format='%h %s [%(trailers:key=Codemode-Status,valueonly)]'
 ```
 
+### Run many agents at once
+
+`scripts/swarm.mjs` starts N agents concurrently. Each one runs one execution and pushes the commit to its own repo, then the script prints commits per second and latency percentiles. Pass `ADMIN_TOKEN` if the Worker requires one.
+
+```bash
+node examples/agent/scripts/swarm.mjs https://codemode-git-example.<subdomain>.workers.dev --agents 1000 --concurrency 200
+```
+
 ### Deploy it
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)

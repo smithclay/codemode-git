@@ -1,84 +1,62 @@
-# Day 3: live demo plan
+# Demo video: draft script
 
-> **Outdated:** this plan predates the DABstep benchmark and the removal of the curator. A new demo plan is pending.
+**Due:** Oct 14, 2026, 11:59 PM PDT. The video must be 5–10 min, in MP4, WebM or MOV, under 2 GiB. Target **8:00** so there's room to spare. Form answers are drafted in [docs/submission.md](docs/submission.md).
 
-**The claim the demo must prove:** many agents work at once with no shared repo, no branches and no merge conflicts, and the system still gets *collectively smarter*. What one agent figures out, every later agent can reuse, and every step is a plain git commit you can clone.
+**Thesis, in one line:** the next GitHub has no merge button. Each agent writes only its own repo, and agents collaborate by *reading* each other's commits instead of merging them.
 
-**The one chart that proves it:** attempts and tokens per task, wave 1 (no skills) vs wave 2 (skills available), on the same task families with different parameters.
+## What the judges score, and where the video covers it
 
----
-
-## What has to exist (build list)
-
-### 1. Model-driven agents (the critical gap)
-So far every run was hand-written. The demo needs a model writing Code Mode code.
-
-- Each `CodeAgent` gets a task prompt and runs a small loop: prompt the model, run the code, and on error feed the error back, for up to 3 attempts. Every attempt is a commit, so **error→fix chains appear in git naturally**. That is Voyager's iterative prompting, visible in `git log -p run.js`.
-- The model sees connector docs plus the codemode workflow (`codemode.search` → `describe` → call). Snippets surface through `search`, so skills are discovered, not hard-wired.
-- Recorded per task as commit trailers: `Codemode-Task`, `Codemode-Attempt`, `Codemode-Tokens`. The curator aggregates them for the chart.
-- **Model choice:** a *cheap* model for agents, so the skill uplift is large and visible ("skills make a small model reliable"), and the stronger code model only in the curator.
-
-### 2. A world with shared sub-problems
-`catalog` alone is too thin. Add 1–2 connectors whose quirks many tasks hit:
-
-| Connector | Built-in trap | Skill it should produce |
+| Criterion (1–5 each) | Weight | Where it lands |
 |---|---|---|
-| `catalog` (exists) | pagination via `nextCursor` | walk-all-pages / count-by-category |
-| `orders` | paginated, **mixed date formats** (`2026-10-03`, `10/03/2026`, epoch ms) | orders-in-date-range |
-| `inventory` | per-warehouse stock, has to be summed across warehouses | total-stock-for-product |
+| Originality and quality of the prototype for agent-oriented software collaboration | 50% | Hook, both primitives, the review story, results. About half the runtime |
+| Concurrency, coordination, context preservation, review, conflict handling | 25% | Swarm burst (concurrency), `git log -p` (context), provenance trailers (coordination), curator lesson (review), single writer per repo (conflicts) |
+| Ease of use and product experience | 25% | Three-line integration, `npm install`, Deploy button, `git clone` with plain git |
 
-About 6 task families × many parameter values. Each family template is phrased in several ways so clustering is non-trivial ("How many…", "Count…", "Number of…").
+## Presentation principles (from the research)
 
-### 3. Swarm launcher
-- `POST /swarm { wave, agents, families }` on the agent Worker fans out to N fresh agent Durable Objects (`w1-a001`…), each with one generated task.
-- It runs everything concurrently; the Workers runtime handles the fan-out. Target: **100 agents per wave** live, plus one pre-recorded run at **1,000** for the scale claim.
+- **Speak Cloudflare's Artifacts vocabulary.** Their launch post says "Agents know Git", and their guidance is one repo per unit of autonomous work. Use that framing and show a plain `git clone` of an agent's repo on screen.
+- **Never show a PR or a merge UI.** Cloudflare said it doesn't want "GitHub as it exists today with agents added on top". Every on-screen artifact should be a commit, a trailer, or a retrieval.
+- **Show the whole platform at work.** The 2024 Cloudflare AI Challenge winner was praised for using a wide range of Cloudflare products. We use eight; show them on one architecture slide rather than listing them aloud.
+- **Show quality control, not just output.** Judges in that challenge also rewarded checking a model's output. Our review story (verified shared skills made agents wrong together) is a real, measured finding. Treat it as a feature of the design, not an apology.
+- **Lead with one hard number.** On Adyen's official scorer, same model and prompt: 32.2% → 46.2% overall, 23.5% → 38.6% on hard tasks.
+- **Make it work as a 10-minute live talk too.** Finalists present on stage at Connect (Oct 21). Keep every beat runnable live from a terminal, with recordings as a backup.
 
-### 4. Live event delivery + safety net
-- On deploy: subscribe each new agent repo's `pushed` events to a queue the curator consumes. The account-level `repo.created` event triggers creating that repo's subscription. Needs the REST API, because the `cf` subscription command doesn't expose Artifacts source fields.
-- **Safety net for a live demo:** a curator cron that backfills every 30s. It's idempotent, so if events lag, nothing is lost.
+## Run of show (~8:00)
 
-### 5. Dashboard (served by the curator Worker, live)
-- **Agents grid:** one tile per repo, colored by latest status, with attempt count. Clicking one shows its commit chain and diffs.
-- **Skills panel:** each skill with its Clef reusability score, replay result (3/3), source agents (provenance links) and reuse count, ticking up live.
-- **Curator feed:** clusters considered, Clef same-task probabilities, rejections and why (low reusability, failed replay), and publishes.
-- **The chart:** attempts per task and tokens per task by wave, plus % of runs using a skill.
-- **Counters:** repos, commits, events and skills. The scale story at a glance.
+| Time | Beat | On screen | Voiceover (draft) |
+|---|---|---|---|
+| 0:00–0:35 | **Hook** | Title card, then the accuracy number | "Same model. Same prompt. On a 450-task agent benchmark, accuracy went from 32 to 46 percent. The only change: agents could read each other's git history. This is codemode-git." |
+| 0:35–1:20 | **Problem** | One slide: a branch/PR/merge graph struck through, then one repo per agent | "GitHub's primitives assume a few writers and human reviewers. Branches, merge conflicts and review queues don't survive thousands of agents. Cloudflare's answer for storage is one repo per agent. So the question becomes: if every agent has its own repo, how do they work together?" |
+| 1:20–2:35 | **Primitive 1: every execution is a commit** | The three-line diff in a stock Code Mode agent. A `curl` execute call. Then `git clone` and `git log -p run.js`, with the `Codemode-*` trailers highlighted | "Add one connector to a Code Mode agent. Every run becomes a commit on that agent's own Artifacts repo: the code it ran, every tool call and the result. Clone it with plain git, and `git log -p` is the agent's trajectory. Agents also get `history.log` and `history.show`, so they can look back further than the runtime remembers." |
+| 2:35–3:35 | **Concurrency** | Terminal running `scripts/swarm.mjs`, then the summary JSON. Artifacts dashboard metrics | "Here are [1,000] agents at once: [1,000] Durable Objects, [1,000] repos, [N] commits a second, zero conflicts. Each agent is the only writer to its own repo, so there's nothing to lock and nothing to merge." |
+| 3:35–5:05 | **Primitive 2: collaboration by retrieval** | Diagram: push → embed question + code → Vectorize. New agent → 3 closest commits from *other* tasks → shown as unverified examples. A real DABstep commit with a `Codemode-Examples:` trailer, then `git show` of the referenced commit in another agent's repo | "When an agent produces an answer, that run is embedded. The next agent starts with the three closest runs other agents committed, labeled as unverified. Every example is a `repo@sha`, and the trailer records which commits influenced which. Instead of a merge graph, you get a provenance graph, and it's all in git." |
+| 5:05–6:05 | **Review: what we tried and removed** | Two-column slide: "verified skill library (PR-style gate)" vs "unverified examples". The fee-454 example | "We first built the GitHub answer: a curator that mined agents' runs into a shared skill library, verified by replay before merging. It certified reproducibility, not correctness. One wrong skill passed, and later agents copied it and got the same answer wrong. A shared, merged library makes errors correlated. So we removed it. Review at agent scale is provenance, plus each agent re-running the code itself." |
+| 6:05–7:05 | **Results** | Chart: accuracy by level (easy, hard, overall). Small table: median tokens 191k → 61k, code runs 13.8 → 9.4, step-limit exhaustion 13% → 7%, Workers AI spend $26.76 | "Scored by Adyen's official DABstep scorer: hard tasks from 23.5 to 38.6 percent, with a third of the median tokens. Agents still wrote and ran their own code, just much less of it. Caveats: one run per arm, and the examples come from earlier runs in the same pass, with no answers or labels." |
+| 7:05–8:00 | **Ease of use and close** | `npm install @smithclay/codemode-git`, the Deploy to Cloudflare button, the architecture slide with all eight products. Then the closing line | "It's a package on npm, three lines in your agent, and a Deploy to Cloudflare button. Next: push events from Artifacts to index runs as they land, and git-notes for provenance. The next GitHub has no merge button. Agents just commit, and learn from each other's history." |
 
----
+## Assets to capture
 
-## Run of show (~7 min)
+- [ ] **Three-line diff:** the stock Code Mode example with the connector added, from the README.
+- [ ] **Live execute → commit:** `cf dev` or the deployed Worker, a `curl` execute, then `GET /commits` showing the sha.
+- [ ] **`git clone` an agent repo with a read token,** then `git log --format='%h %s [%(trailers:key=Codemode-Status,valueonly)]'` and `git log -p run.js`.
+- [ ] **Swarm burst:** run against the deployed example. Record both the terminal and the Artifacts dashboard. Fill in the bracketed numbers in the script.
+- [ ] **Provenance hop:** a DABstep examples-arm commit with `Codemode-Examples:`, then `git show` of the referenced commit in another agent's repo.
+- [ ] **Charts:** accuracy by level, plus a tokens/code-runs table, from [docs/experiments.md](docs/experiments.md).
+- [ ] **Architecture slide:** Workers, Durable Objects (SQLite), Artifacts, Worker Loader, Workers AI, Vectorize, the cf CLI, and Workers Builds through the Deploy button.
+- [ ] **The Deploy to Cloudflare button working end to end,** after a clean retry.
 
-| Time | Beat | On screen |
-|---|---|---|
-| 0:00 | **Problem.** Git hosting assumes humans; agents produce orders of magnitude more changes. Branches, PRs and merge conflicts don't scale to 100k agents. | One slide |
-| 0:40 | **Plugin.** A stock Code Mode agent plus 3 lines turns every execution into a commit on its own Artifacts repo. | Code diff |
-| 1:20 | **Wave 1:** launch 100 agents, no skills. | Grid lights up, commit counter climbs |
-| 2:30 | **Real git.** `git clone` one agent and run `git log -p run.js`: an error→fix chain with `Codemode-*` trailers. | Terminal |
-| 3:15 | **Curator.** Clusters form across agents. Clef decides "same task" and scores reusability; replay verifies; skills land in the `skills` repo with provenance. | Curator feed + skills panel |
-| 4:30 | **Wave 2:** 100 new agents, same families, new parameters. They find skills via `codemode.search`. | Reuse counts tick; chart drops |
-| 5:45 | **Governance with git.** `git log` on `skills`; an agent commit shows `Codemode-Skills-Ref`, the exact library version it ran. Pin or roll back = change a ref. | Terminal |
-| 6:30 | **Scale and close.** No shared writes on the hot path: each agent writes only its repo, only the curator writes `skills`. Show the 1,000-agent run numbers. | Counters + architecture slide |
+## Swarm burst
 
----
+```bash
+cd examples/agent
+ADMIN_TOKEN=... node scripts/swarm.mjs https://codemode-git-example.<subdomain>.workers.dev --agents 1000 --concurrency 200
+```
 
-## Test plan (before recording)
+Each agent is `agent-swarm-<run>-<i>`: one Durable Object, one repo and one commit. The script prints repos with a commit, errors, wall time, commits per second, and p50/p95 for execute, push and total. Run it before Oct 15, when Artifacts billing starts. Start with `--agents 50` to check the setup.
 
-1. **Smoke, 10 agents, local.** End to end through the LLM loop. Check that trailers, the curator and skills all show up.
-2. **Wave pair, 50 + 50, deployed.** Check that skills form in wave 1 and that the wave 2 chart actually drops. Tune `POLICY` (min repos, Clef thresholds) and the task mix if it doesn't.
-3. **Load, 200 agents, deployed.** Watch for Workers AI rate limits (agent model, Clef, embeddings), Artifacts push errors, and curator lag (it processes serially). Fixes if needed: batch Clef questions across runs, or shard the curator by connector set.
-4. **Fault drills:**
-   - Kill the curator mid-wave and confirm that backfill catches up.
-   - Force a bad proposal and confirm the replay rejects it.
-   - Check that an agent with a missing connector skips skills.
-5. **1,000-agent run, recorded** for the scale numbers: repos created, commits pushed, events, time to first skill, cost.
-6. **Dress rehearsal ×2** on the deployed stack with fresh namespaces (`demo-1`, `demo-2`). Keep the best recording as the backup video.
+## Pre-flight
 
-## Risks
-
-| Risk | Mitigation |
-|---|---|
-| Model nondeterminism: no clusters form live | Families designed with strong overlap; a minimum of ~15 agents per family; tested thresholds; backup recording |
-| Rate limits at 100+ concurrent agents | Stagger launches over ~20s; measured in test 3 |
-| Curator falls behind | Cron backfill; show queue depth on the dashboard; per-commit cost measured in test 3 |
-| Bad skill published | Replay verification is the gate; the demo shows a rejection on purpose |
-| Live network flakiness on stage | Deployed stack, not local; backup recording |
+- [ ] Deployed example on a fresh Artifacts namespace, with `ADMIN_TOKEN` set.
+- [ ] Swarm at 50 agents, then 1,000. Note any rate limits or push errors.
+- [ ] Rehearse once against the clock, aiming for 7:30–8:30.
+- [ ] Export to MP4 under 2 GiB, then submit at [cloudflare.com/git-competition/submit](https://www.cloudflare.com/git-competition/submit).

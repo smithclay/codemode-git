@@ -141,6 +141,23 @@ git -c http.extraHeader="Authorization: Bearer <token>" clone https://<account-i
 git log --format='%h %s [%(trailers:key=Codemode-Status,valueonly)]'
 ```
 
+### Ask a model, with other agents' runs as examples
+
+`POST /agents/:name/ask` runs a Workers AI tool-calling loop (`@cf/zai-org/glm-5.3-flash`, at most 10 steps) where the model answers by writing code against `lamps`. Before it starts, the agent retrieves up to 3 answer-producing runs of *other* agents from the `codemode-git-examples` Vectorize index (scope `lamps`) and shows them as unverified examples. Each commit's subject is the question, and its `Codemode-Examples` trailer lists the examples shown. After answering, the agent pushes its commits and indexes the run the answer came from. Create the Vectorize index and its metadata indexes first (see [Examples](#examples-learning-from-other-agents-runs-optional)).
+
+```bash
+curl -X POST localhost:8787/agents/michelle/ask -d '{"question": "How many lava lamps on the wall are flowing right now?"}'
+# {"agent","question","answer","steps","executions","errors","tokens":{"input","output"},"examples":["agent-…@sha"],"commits":[{"sha","intent","status"}],"indexed"}
+```
+
+Pass `"useExamples": false` for a baseline without retrieval. `GET /agents/:name/examples?question=...` shows what `ask` would retrieve, without calling the chat model.
+
+`scripts/walkthrough.mjs` runs the two-agent demo: `michelle` asks how many lamps are flowing, then `matthew` asks how many red lamps are flowing and is shown michelle's run. Between the two it polls until michelle's run is retrievable, because Vectorize metadata filters see new vectors only after ~1–2 minutes (`--wait` caps the wait in seconds, default 180). Agent names get a run-unique prefix, so each rerun uses fresh agents and repos. It prints both answers side by side with executions, steps, tokens, examples and commit shas.
+
+```bash
+node examples/agent/scripts/walkthrough.mjs https://codemode-git-example.<subdomain>.workers.dev [--prefix demo] [--wait 180]
+```
+
 ### Run many agents at once
 
 `scripts/swarm.mjs` starts N agents concurrently. Each one runs one execution and pushes the commit to its own repo, then the script prints commits per second and latency percentiles. Pass `ADMIN_TOKEN` if the Worker requires one.
@@ -153,7 +170,7 @@ node examples/agent/scripts/swarm.mjs https://codemode-git-example.<subdomain>.w
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)
 
-The button copies `examples/agent` into a new repo on your GitHub or GitLab account and deploys it with Workers Builds. Create the Artifacts namespace first: the button doesn't provision Artifacts. Set `ADMIN_TOKEN` when it asks, because the Worker runs any code it's sent. The button only reads Wrangler config, so the example also has a `wrangler.jsonc` that mirrors `cloudflare.config.ts` (CI checks both). If the button fails, deploy from the command line:
+The button copies `examples/agent` into a new repo on your GitHub or GitLab account and deploys it with Workers Builds. Create the Artifacts namespace first: the button doesn't provision Artifacts. For `ask`, also create the `codemode-git-examples` Vectorize index with its metadata indexes, since retrieval filters on them. Set `ADMIN_TOKEN` when it asks, because the Worker runs any code it's sent. The button only reads Wrangler config, so the example also has a `wrangler.jsonc` that mirrors `cloudflare.config.ts` (CI checks both). If the button fails, deploy from the command line:
 
 ```bash
 npx cf artifacts namespaces create --namespace codemode-git

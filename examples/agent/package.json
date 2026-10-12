@@ -28,6 +28,12 @@
       "AGENT": {
         "description": "Durable Object, one per agent. Holds the Code Mode runtime and the commit outbox."
       },
+      "AI": {
+        "description": "Workers AI. `ask` uses it for the chat model and for the embeddings that find other agents' runs."
+      },
+      "EXAMPLES": {
+        "description": "Vectorize index `codemode-git-examples` (1024 dimensions, cosine) of answer-producing runs. Needs metadata indexes on `scope` (string), `ok` (boolean) and `task` (string); see the repo README."
+      },
       "ADMIN_TOKEN": {
         "description": "Requests must send `Authorization: Bearer <ADMIN_TOKEN>`. **Set this**: the Worker runs arbitrary code it is sent."
       }

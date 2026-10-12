@@ -13,5 +13,9 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CodeAgent"] }],
   // One repo per agent in this namespace.
   "artifacts": [{ "binding": "ARTIFACTS", "namespace": "codemode-git" }],
-  "worker_loaders": [{ "binding": "LOADER" }]
+  "worker_loaders": [{ "binding": "LOADER" }],
+  // `ask`: the chat model and the embeddings for examples.
+  "ai": { "binding": "AI", "remote": true },
+  // Answer-producing runs embedded as question + code, shared by all agents.
+  "vectorize": [{ "binding": "EXAMPLES", "index_name": "codemode-git-examples", "remote": true }]
 }

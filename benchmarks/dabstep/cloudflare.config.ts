@@ -8,8 +8,7 @@ export default defineConfig({
     entrypoint: "src/index.ts",
     observability: { enabled: true },
     exports: {
-      Solver: exports.durableObject({ storage: "sqlite" }),
-      DabstepCurator: exports.durableObject({ storage: "sqlite" })
+      Solver: exports.durableObject({ storage: "sqlite" })
     },
     env: {
       // DABstep context data (scripts/build_sql.py), read-only to agents.
@@ -21,8 +20,7 @@ export default defineConfig({
       EXAMPLES: bindings.vectorize({ name: "codemode-git-examples", dev: { remote: true } }),
       // HARNESS_TOKEN: set with `cf workers secrets update`. Every non-localhost
       // request needs it as a bearer token; without it the worker rejects all.
-      SOLVER: bindings.durableObject({ worker: "codemode-git-dabstep", exportName: "Solver" }),
-      CURATOR: bindings.durableObject({ worker: "codemode-git-dabstep", exportName: "DabstepCurator" })
+      SOLVER: bindings.durableObject({ worker: "codemode-git-dabstep", exportName: "Solver" })
     }
   }
 });

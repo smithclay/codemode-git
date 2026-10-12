@@ -5,13 +5,13 @@ import {
   GitHistoryConnector,
   indexExample,
   retrieveExamples,
-  syncSkills,
   toFinalCommit,
   TRAILERS,
   type Example
 } from "codemode-git";
-import { runAi } from "codemode-git-curator/ai";
+import { runAi } from "./ai";
 import { DabstepConnector, SCHEMA } from "./connector";
+import { selfTest } from "./selftest";
 
 export type Env = {
   DB: D1Database;
@@ -22,13 +22,12 @@ export type Env = {
   LOADER: WorkerLoader;
 };
 
-/** baseline: stock Code Mode. codemode-git: + per-agent git history + curated skills. */
 /**
  * baseline: stock Code Mode.
- * codemode-git: + per-agent git history + curated skills (snippets).
  * codemode-git-examples: + per-agent git history + other agents' answer-producing runs as examples.
+ * (The curated-skills arm, "codemode-git", was dropped after tpl36b; see docs/experiments.md.)
  */
-export type Arm = "baseline" | "codemode-git" | "codemode-git-examples";
+export type Arm = "baseline" | "codemode-git-examples";
 
 export type Task = { task_id: string; question: string; guidelines: string; level: string };
 
@@ -61,18 +60,14 @@ export type SolveResult = {
   executions: number;
   errors: number;
   tokens: { input: number; output: number };
-  skillsOffered: string[];
   /** Example runs (repo@sha) shown to the agent (codemode-git-examples arm). */
   examplesOffered: string[];
-  skillsUsed: string[];
-  skillsRef: string | null;
   ms: number;
   /** Assistant/user turns after the system prompt, clipped. For debugging failures. */
   transcript: { role: string; content: string }[];
 };
 
-export const agentRepo = (run: string, key: string, arm: Arm = "codemode-git") => `${run}-${arm}-t${key}`;
-export const skillsRepo = (run: string) => `${run}-skills`;
+export const agentRepo = (run: string, key: string, arm: Arm) => `${run}-${arm}-t${key}`;
 
 // The manual is ~22k chars; agents must be able to read it whole.
 const MAX_FEEDBACK_CHARS = 24_000;
@@ -84,7 +79,7 @@ function examplesText(examples: Example[]): string {
     .join("\n\n")}\n`;
 }
 
-function systemPrompt(skills: { name: string; description: string }[], examples: Example[] = []): string {
+function systemPrompt(examples: Example[]): string {
   return `You are a data analyst agent. You answer a question about a payments dataset by writing JavaScript that runs in a sandbox.
 
 ## How to work
@@ -105,13 +100,7 @@ ${SCHEMA}
 - Read the manual before answering fee, fraud or volume questions; its definitions are authoritative.
 - Prefer computing in SQL. Return compact values from code, not raw tables.
 - Follow the answer guidelines exactly (format, rounding, units). If the question has no applicable answer, answer "Not Applicable".
-${
-  skills.length
-    ? `\n## Shared skills\nOther agents' verified code, available via codemode.run(name, input). Use one if it fits; check its input with codemode.describe(name).\n${skills
-        .map((s) => `- ${s.name}: ${s.description}`)
-        .join("\n")}\n`
-    : ""
-}${examplesText(examples)}`;
+${examplesText(examples)}`;
 }
 
 const TOOLS = [
@@ -215,6 +204,16 @@ export function clip(value: unknown): string {
 
 /** One agent, one task. */
 export class Solver extends DurableObject<Env> {
+  /** Harness self-test (see selftest.ts): the agents' real runtime, D1 and Vectorize; no chat-model calls. */
+  async selfTest() {
+    const runtime = createCodemodeRuntime({
+      ctx: this.ctx,
+      executor: new DynamicWorkerExecutor({ loader: this.env.LOADER, timeout: 60_000 }),
+      connectors: [new DabstepConnector(this.ctx, this.env)]
+    });
+    return selfTest(runtime, { ai: this.env.AI, index: this.env.EXAMPLES });
+  }
+
   async solve(req: SolveRequest): Promise<SolveResult> {
     const started = Date.now();
     const { task, arm, model, run } = req;
@@ -223,7 +222,6 @@ export class Solver extends DurableObject<Env> {
     const connectors: CodemodeConnector[] = [new DabstepConnector(this.ctx, this.env)];
     let history: GitHistoryConnector | undefined;
     let sink: ArtifactsSink | undefined;
-    let skillsRef: string | null = null;
     let examples: Example[] = [];
     const repoName = agentRepo(run, agentKey(req), arm);
     if (arm !== "baseline") {
@@ -231,10 +229,8 @@ export class Solver extends DurableObject<Env> {
       history = new GitHistoryConnector(this.ctx, this.env, {
         sink,
         describe: () => `t${task.task_id}: ${task.question}`.slice(0, 200),
-        extraTrailers: (): Record<string, string> => ({
-          ...(skillsRef ? { [TRAILERS.skillsRef]: skillsRef } : {}),
-          ...(examples.length ? { [TRAILERS.examples]: examples.map((e) => `${e.repo}@${e.sha.slice(0, 12)}`).join(", ") } : {})
-        })
+        extraTrailers: (): Record<string, string> =>
+          examples.length ? { [TRAILERS.examples]: examples.map((e) => `${e.repo}@${e.sha.slice(0, 12)}`).join(", ") } : {}
       });
       connectors.push(history);
     }
@@ -244,30 +240,6 @@ export class Solver extends DurableObject<Env> {
       connectors
     });
     history?.bind(runtime);
-
-    // codemode-git: pull the run's skill library, offer the best matches (Voyager-style retrieval).
-    let offered: { name: string; description: string }[] = [];
-    if (arm === "codemode-git") {
-      const synced = await syncSkills({
-        ctx: this.ctx,
-        artifacts: this.env.ARTIFACTS,
-        repo: skillsRepo(run),
-        connectors: ["data"]
-      });
-      skillsRef = synced.sha;
-      if (synced.installed.length) {
-        const snippets = await runtime.snippets();
-        const ranked = (await runtime.search(task.question)).results
-          .filter((r) => r.kind === "snippet")
-          .map((r) => r.path);
-        const order = [...ranked, ...snippets.map((s) => s.name).filter((n) => !ranked.includes(n))];
-        offered = order
-          .slice(0, 5)
-          .map((name) => snippets.find((s) => s.name === name)!)
-          .filter(Boolean)
-          .map((s) => ({ name: s.name, description: s.description }));
-      }
-    }
 
     // codemode-git-examples: the closest answer-producing runs of other tasks in this run.
     if (arm === "codemode-git-examples") {
@@ -281,7 +253,7 @@ export class Solver extends DurableObject<Env> {
     }
 
     const messages: ChatMessage[] = [
-      { role: "system", content: systemPrompt(offered, examples) },
+      { role: "system", content: systemPrompt(examples) },
       { role: "user", content: `Question: ${task.question}\n\nAnswer guidelines: ${task.guidelines}` }
     ];
     const result: SolveResult = {
@@ -295,10 +267,7 @@ export class Solver extends DurableObject<Env> {
       executions: 0,
       errors: 0,
       tokens: { input: 0, output: 0 },
-      skillsOffered: offered.map((s) => s.name),
       examplesOffered: examples.map((e) => `${e.repo}@${e.sha.slice(0, 12)}`),
-      skillsUsed: [],
-      skillsRef,
       ms: 0,
       transcript: []
     };
@@ -351,9 +320,6 @@ export class Solver extends DurableObject<Env> {
           continue;
         }
         result.executions++;
-        for (const m of action.code.matchAll(/codemode\.run\(\s*["'`]([^"'`]+)/g)) {
-          if (!result.skillsUsed.includes(m[1]!)) result.skillsUsed.push(m[1]!);
-        }
         const outcome = await runtime.execute({ code: action.code });
         if (outcome.status === "completed") {
           lastCompleted = outcome.executionId;
@@ -370,8 +336,8 @@ export class Solver extends DurableObject<Env> {
       result.exhausted = true;
       result.answer = "Not Applicable";
     }
-    // Make sure every run is pushed before reporting, so the curator sees it,
-    // then mark which run the answer came from.
+    // Make sure every run is pushed before reporting, then mark which run the
+    // answer came from.
     await history?.flush();
     const finalSha = lastCompleted && history?.commits(200).find((c) => c.execution_id === lastCompleted && c.sha)?.sha;
     if (sink && finalSha && result.answer !== "Not Applicable") {

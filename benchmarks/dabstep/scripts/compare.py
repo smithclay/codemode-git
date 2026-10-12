@@ -1,11 +1,11 @@
 """Paired comparison of two arms on the same slice.
 
-    python3 scripts/compare.py results/tpl36a-baseline.jsonl results/tpl36a-codemode-git.jsonl --slice tpl36
+    python3 scripts/compare.py results/tpl36b-baseline.jsonl results/tpl36b-codemode-git-examples.jsonl --slice tpl36
 
 Pairs results by (task_id, repeat). Reports, per arm and as paired
 differences: graded accuracy (dev tasks, official scorer, McNemar counts),
 step-limit exhaustion, code runs, tokens and time; plus a learning curve by
-position in the slice (does the codemode-git arm get cheaper as skills form?).
+position in the slice (does the second arm get cheaper as it learns?).
 """
 
 import argparse
@@ -81,9 +81,8 @@ for label, f in [
     lo, hi = boot_ci(diffs)
     print(f"{label:22} {mean(va):>14.2f} (md {median(va):>6.0f}) {mean(vb):>14.2f} (md {median(vb):>6.0f})   {mean(diffs):+.2f} [{lo:+.2f}, {hi:+.2f}]")
 
-used = sum(1 for k in keys if B[k].get("skillsUsed"))
-offered = sum(1 for k in keys if B[k].get("skillsOffered"))
-print(f"\n{name_b}: skills offered on {offered}/{len(keys)} tasks, used on {used}/{len(keys)}")
+offered = sum(1 for k in keys if B[k].get("examplesOffered"))
+print(f"\n{name_b}: examples offered on {offered}/{len(keys)} tasks")
 
 # Learning curve: tokens by wave of the slice
 wave = 6
@@ -92,4 +91,4 @@ for w in range(0, len(order), wave):
     ks = [k for k in keys if w <= position.get(k, -1) < w + wave]
     if ks:
         print(f"  wave {w // wave + 1}: {name_a} {mean(tokens(A[k]) for k in ks):>9,.0f}   {name_b} {mean(tokens(B[k]) for k in ks):>9,.0f}"
-              f"   skills used {sum(1 for k in ks if B[k].get('skillsUsed'))}/{len(ks)}")
+              f"   examples offered {sum(1 for k in ks if B[k].get('examplesOffered'))}/{len(ks)}")

@@ -1,6 +1,6 @@
 """Score result files against DABstep dev answers with the official scorer.
 
-    python3 scripts/score.py results/dev1-baseline.jsonl [results/dev1-codemode-git.jsonl ...]
+    python3 scripts/score.py results/dev1-baseline.jsonl [results/dev1-codemode-git-examples.jsonl ...]
 
 Also writes <file>.submission.jsonl in the leaderboard's format
 ({task_id, agent_answer}) for any split.
@@ -38,7 +38,4 @@ for path in sys.argv[1:]:
           f"{sum(r['errors'] for r in rows) / n:.1f} errors, "
           f"{sum(r['tokens']['input'] + r['tokens']['output'] for r in rows) / n:,.0f} tokens, "
           f"{sum(r['ms'] for r in rows) / n / 1000:.0f}s")
-    used = sum(1 for r in rows if r.get("skillsUsed"))
-    if any(r["arm"] == "codemode-git" for r in rows):
-        print(f"  runs using a skill: {used}/{len(rows)}")
     print(f"  submission file: {sub}")

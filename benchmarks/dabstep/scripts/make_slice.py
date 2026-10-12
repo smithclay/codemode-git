@@ -1,5 +1,5 @@
 """Build an A/B task slice: N tasks sampled from the test split (ungraded,
-they give the curator material to learn from), followed by all dev tasks
+they give the learning arm material to learn from), followed by all dev tasks
 (graded). Same file, same order for both arms.
 
     python3 scripts/make_slice.py --name ab25 --sample 15 --seed 42

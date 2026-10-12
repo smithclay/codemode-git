@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // Run DABstep tasks through one arm of the benchmark worker.
 //
-//   node scripts/run.mjs --run dev1 --arm codemode-git --model @cf/zai-org/glm-5.3-flash \
-//     --split dev --concurrency 5 [--tasks 5,49] [--limit 25] [--url http://localhost:8790]
+//   node scripts/run.mjs --run dev1 --arm codemode-git-examples --model @cf/zai-org/glm-5.3-flash \
+//     --split dev --concurrency 5 [--rolling] [--tasks 5,49] [--limit 25] [--url http://localhost:8790]
 //
 // Tasks go out in waves of --concurrency fresh agents (or, with --rolling, a
-// new agent starts whenever one finishes). In the codemode-git arm
-// the run's curator ingests each finished wave before the next one starts, so
-// later waves can reuse skills learned from earlier ones. Results are appended
-// to results/<run>-<arm>.jsonl (resumable: finished task ids are skipped).
+// new agent starts whenever one finishes). In the examples arm, each agent's
+// answer-producing run becomes an example later agents can retrieve. Results
+// are appended to results/<run>-<arm>.jsonl (resumable: finished task ids are
+// skipped).
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,8 +37,8 @@ const { values: opts } = parseArgs({
     rolling: { type: "boolean", default: false }
   }
 });
-if (!opts.run || !["baseline", "codemode-git", "codemode-git-examples"].includes(opts.arm)) {
-  console.error("usage: --run <id> --arm baseline|codemode-git|codemode-git-examples [--model] [--split dev|all] [--tasks a,b] [--limit n]");
+if (!opts.run || !["baseline", "codemode-git-examples"].includes(opts.arm)) {
+  console.error("usage: --run <id> --arm baseline|codemode-git-examples [--model] [--split dev|all] [--rolling] [--tasks a,b] [--limit n]");
   process.exit(1);
 }
 
@@ -120,26 +120,17 @@ function record(r) {
   console.log(
     `  t${r.task_id}#${r.repeat}: ${JSON.stringify(r.answer).slice(0, 50)} · ${r.executions} runs, ${r.errors} errors, ` +
       `${r.exhausted ? "EXHAUSTED, " : ""}` +
-      `${r.tokens.input + r.tokens.output} tok${r.skillsUsed.length ? ` · skills ${r.skillsUsed.join(",")}` : ""}` +
+      `${r.tokens.input + r.tokens.output} tok` +
       `${r.examplesOffered?.length ? ` · ${r.examplesOffered.length} examples` : ""}`
   );
-}
-
-async function curate() {
-  const res = await fetch(`${opts.url}/curate/${opts.run}/backfill`, { method: "POST", headers: auth });
-  const c = res.ok ? await res.json() : { error: await res.text() };
-  console.log(`  curator: ${JSON.stringify(c)}`);
 }
 
 if (opts.rolling) {
   // Keep `size` agents busy: a new task starts as soon as any finishes, so one
   // slow task never idles the other slots. Results are written as they land.
-  // Examples become retrievable as soon as Vectorize indexes them (no settle);
-  // the skills curator runs (serialized, in the background) every `size` results.
+  // Examples become retrievable as soon as Vectorize indexes them (no settle).
   console.log(`${opts.run}/${opts.arm}: ${tasks.length} tasks, rolling concurrency ${size}, model ${opts.model}`);
   let next = 0;
-  let finished = 0;
-  let curating = Promise.resolve();
   await Promise.all(
     Array.from({ length: Math.min(size, tasks.length) }, async (_, slot) => {
       // Stagger the first launches a little to smooth Workers AI rate limits.
@@ -147,11 +138,9 @@ if (opts.rolling) {
       while (next < tasks.length) {
         const r = await solve(tasks[next++]);
         if (r) record(r);
-        if (opts.arm === "codemode-git" && ++finished % size === 0) curating = curating.then(curate, curate);
       }
     })
   );
-  await curating;
 } else {
   console.log(`${opts.run}/${opts.arm}: ${tasks.length} tasks, waves of ${size}, model ${opts.model}`);
   for (let i = 0; i < tasks.length; i += size) {
@@ -168,7 +157,6 @@ if (opts.rolling) {
       console.log(`  waiting ${opts.settle}s for examples to become searchable`);
       await new Promise((r) => setTimeout(r, Number(opts.settle) * 1000));
     }
-    if (opts.arm === "codemode-git") await curate();
   }
 }
 console.log(`wrote ${out}`);

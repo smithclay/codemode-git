@@ -1,8 +1,7 @@
 import { CodemodeConnector, type ConnectorTools } from "@cloudflare/codemode";
 
 // The DABstep context files, loaded into D1 by scripts/build_sql.py, exposed
-// to the sandbox as `data.*`. Read-only, deterministic and static, so the
-// curator can verify skills against it live.
+// to the sandbox as `data.*`. Read-only, deterministic and static.
 
 const MAX_ROWS = 5000;
 

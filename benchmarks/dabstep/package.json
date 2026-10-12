@@ -2,7 +2,7 @@
   "name": "codemode-git-dabstep",
   "private": true,
   "type": "module",
-  "description": "DABstep benchmark harness: stock Code Mode vs Code Mode + codemode-git.",
+  "description": "DABstep benchmark harness: stock Code Mode vs Code Mode + codemode-git (git history + examples).",
   "scripts": {
     "dev": "cf dev",
     "deploy": "cf deploy",
@@ -11,8 +11,7 @@
   },
   "dependencies": {
     "@cloudflare/codemode": "^0.5.3",
-    "codemode-git": "*",
-    "codemode-git-curator": "*"
+    "codemode-git": "*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261004.1",

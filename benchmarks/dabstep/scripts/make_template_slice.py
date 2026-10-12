@@ -1,4 +1,4 @@
-"""Build a template-concentrated A/B slice, where skills have a chance to apply.
+"""Build a template-concentrated A/B slice, where learning across agents has a chance to apply.
 
 DABstep's 450 tasks are ~113 question templates (most with ~20 instances).
 For each graded dev task, take its template and sample N sibling tasks from

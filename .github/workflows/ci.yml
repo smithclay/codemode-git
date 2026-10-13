@@ -22,6 +22,16 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # The npm package ships only dist/, src/, LICENSE and package.json: no
+      # demo video, voiceover, benchmark data or examples.
+      - name: Check npm package contents
+        working-directory: packages/codemode-git
+        run: |
+          npm pack --dry-run --json | node -e '
+            const files = JSON.parse(require("fs").readFileSync(0, "utf8"))[0].files.map((f) => f.path);
+            const extra = files.filter((p) => !/^(dist|src)\//.test(p) && !["LICENSE", "package.json", "README.md"].includes(p));
+            if (extra.length) { console.error("Unexpected files in the npm package:\n" + extra.join("\n")); process.exit(1); }
+            console.log(files.length + " files, all expected");'
       # Builds the example and checks the deploy without credentials.
       - run: npx cf build --mode production
         working-directory: examples/agent

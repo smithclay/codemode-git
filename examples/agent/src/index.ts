@@ -27,8 +27,12 @@ type Env = {
   ADMIN_TOKEN?: string;
 };
 
-/** All lamp-wall agents share one examples scope in the Vectorize index. */
-const SCOPE = "lamps";
+/**
+ * Lamp-wall agents share one examples scope in the Vectorize index unless a
+ * request names its own, e.g. a run-unique one so a demo sees only its own runs.
+ */
+const DEFAULT_SCOPE = "lamps";
+const SCOPE_PATTERN = /^[a-z0-9-]{1,64}$/;
 
 /**
  * Example task id. `retrieveExamples` skips matches whose task equals
@@ -37,8 +41,8 @@ const SCOPE = "lamps";
  */
 const taskId = (agent: string) => `agent-${agent}`;
 
-const retrieve = (env: Env, agent: string, question: string) =>
-  retrieveExamples({ ai: env.AI, index: env.EXAMPLES, scope: SCOPE, question, excludeTask: taskId(agent), k: 3 });
+const retrieve = (env: Env, agent: string, question: string, scope: string) =>
+  retrieveExamples({ ai: env.AI, index: env.EXAMPLES, scope, question, excludeTask: taskId(agent), k: 3 });
 
 export type AskResult = {
   agent: string;
@@ -97,8 +101,8 @@ export class CodeAgent extends DurableObject<Env> {
   }
 
   /** Answer a question with a model-driven Code Mode loop, shown other agents' runs as examples. */
-  async ask(agent: string, question: string, useExamples: boolean): Promise<AskResult> {
-    const examples: Example[] = useExamples ? await retrieve(this.env, agent, question) : [];
+  async ask(agent: string, question: string, useExamples: boolean, scope: string): Promise<AskResult> {
+    const examples: Example[] = useExamples ? await retrieve(this.env, agent, question, scope) : [];
     const shown = examples.map(exampleRef);
     const { runtime, history } = this.#setup(agent, {
       describe: () => question.slice(0, 200),
@@ -122,7 +126,7 @@ export class CodeAgent extends DurableObject<Env> {
           await indexExample({
             ai: this.env.AI,
             index: this.env.EXAMPLES,
-            scope: SCOPE,
+            scope,
             task: taskId(agent),
             repo: `agent-${agent}`,
             sha,
@@ -153,8 +157,8 @@ export class CodeAgent extends DurableObject<Env> {
 }
 
 const USAGE = `POST /agents/:name/execute (body: code)
-POST /agents/:name/ask (body: {"question": "...", "useExamples"?: false})
-GET  /agents/:name/examples?question=... (what ask would retrieve)
+POST /agents/:name/ask (body: {"question": "...", "useExamples"?: false, "scope"?: "lamps"})
+GET  /agents/:name/examples?question=...[&scope=lamps] (what ask would retrieve)
 GET  /agents/:name/commits
 POST /agents/:name/flush
 `;
@@ -174,17 +178,23 @@ export default {
       return Response.json(await stub.execute(agent, await request.text()));
     }
     if (action === "ask" && request.method === "POST") {
-      const body = (await request.json().catch(() => null)) as { question?: unknown; useExamples?: unknown } | null;
+      const body = (await request.json().catch(() => null)) as { question?: unknown; useExamples?: unknown; scope?: unknown } | null;
       const question = typeof body?.question === "string" ? body.question.trim() : "";
       if (!question || question.length > 1000) {
         return new Response('body must be {"question": "..."} (at most 1000 chars)\n', { status: 400 });
       }
-      return Response.json(await stub.ask(agent, question, body?.useExamples !== false));
+      const scope = body?.scope ?? DEFAULT_SCOPE;
+      if (typeof scope !== "string" || !SCOPE_PATTERN.test(scope)) {
+        return new Response("scope must match [a-z0-9-]{1,64}\n", { status: 400 });
+      }
+      return Response.json(await stub.ask(agent, question, body?.useExamples !== false, scope));
     }
     if (action === "examples" && request.method === "GET") {
       const question = url.searchParams.get("question")?.trim();
       if (!question) return new Response("missing ?question=\n", { status: 400 });
-      const examples = await retrieve(env, agent, question);
+      const scope = url.searchParams.get("scope") ?? DEFAULT_SCOPE;
+      if (!SCOPE_PATTERN.test(scope)) return new Response("scope must match [a-z0-9-]{1,64}\n", { status: 400 });
+      const examples = await retrieve(env, agent, question, scope);
       return Response.json(examples.map((e) => ({ ref: exampleRef(e), question: e.question, score: e.score })));
     }
     if (action === "commits" && request.method === "GET") {

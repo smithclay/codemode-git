@@ -33,7 +33,7 @@ But the isolate is thrown away after every run, and the code goes with it. When 
 
 ## code-memory
 
-So we keep it in a Cloudflare Artifact git repository. Every execution becomes a commit on that agent's own personal repo: the code, every tool call and its result, and the outcome. One repo per agent, and one writer per repo. Nothing to lock, nothing to merge.
+So we keep it in a Cloudflare Artifact git repository. Every execution becomes a commit on that agent's own personal repo: the code, every tool call and its result, and the outcome. One repo per agent, and one writer per repo. Nothing to lock, nothing to merge. In our test, a thousand agents committed at once: a thousand commits in under thirty seconds, with zero errors.
 
 ## under-the-hood
 
@@ -43,18 +43,17 @@ Under the hood, a connector hooks the end of every execution in the Cloudflare S
 
 Clone an agent's repo, and its log is the agent's trajectory: every attempt, every fix, every answer.
 
-## scale
-
-Artifacts is built for tens of millions of repos, so every agent gets its own, and they all write at the same time.
-
 ## recall
 
 Here's a simple way agents can use Artifacts to learn. When a run produces an answer, Workers AI embeds the question and the code into Cloudflare Vectorize. The next agent with a similar question searches for similar solutions and uses that for better context.
 
 ## walkthrough
 
-<!-- Check against the recorded walkthrough.mjs run before final render. -->
-Let's walk through an example: Cloudflare's wall of lava lamps. Agent Michelle asks how many lamps are flowing. With no memory, Michelle has to discover that the wall is paginated. Agent Matthew asks about the red lamps, starts from Michelle's run, and already knows to walk every page.
+Here's one real task from the benchmark: if a fee only applied to one account type in 2023, which merchants would it affect? Without memory, the agent wrote ten programs, ran out of steps, and gave up. With memory, it started from three runs of similar questions, and got it right in two programs, with eight thousand tokens instead of two hundred and seventy-nine thousand.
+
+## provenance
+
+And it's all in Artifacts. Clone that agent's repo, and its commit names the exact runs it learned from. Follow the link to the next repo, and there's the code it started from.
 
 ## curve
 

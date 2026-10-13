@@ -8,7 +8,8 @@
 //      terminal, which uses your cf login. Override with VOICE_URL.
 //   2. The REST API: set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
 //
-// Writes public/voiceover/<scene>.mp3 and public/voiceover/manifest.json
+// Writes public/voiceover/<scene>.wav (uncompressed 16-bit, 24 kHz: MP3 at
+// Aura's 48 kbps had audible artifacts) and public/voiceover/manifest.json
 // (with the text each clip was generated from, for captions). A scene is
 // regenerated only when its text or speaker changes.
 
@@ -35,12 +36,12 @@ async function speak(text) {
       ? await fetch(rest("@cf/deepgram/aura-2-en"), {
           method: "POST",
           headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-          body: JSON.stringify({ text, speaker: SPEAKER, encoding: "mp3" })
+          body: JSON.stringify({ text, speaker: SPEAKER, encoding: "linear16", container: "wav", sample_rate: 24000 })
         })
       : await fetch(`${voiceUrl}/tts`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ text, speaker: SPEAKER })
+          body: JSON.stringify({ text, speaker: SPEAKER, wav: true })
         });
   if (!res.ok) throw new Error(`tts: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
   return Buffer.from(await res.arrayBuffer());
@@ -108,8 +109,8 @@ const manifest = {};
 let generated = 0;
 for (const scene of scenes) {
   const text = transcript[scene.id];
-  const hash = createHash("sha256").update(`${SPEAKER}\n${text}`).digest("hex").slice(0, 16);
-  const file = `voiceover/${scene.id}.mp3`;
+  const hash = createHash("sha256").update(`${SPEAKER}\nwav\n${text}`).digest("hex").slice(0, 16);
+  const file = `voiceover/${scene.id}.wav`;
   const path = join(root, "public", file);
   if (previous[scene.id]?.hash === hash && existsSync(path)) {
     manifest[scene.id] = { ...previous[scene.id], text };
@@ -131,12 +132,19 @@ console.log(`${generated} scene(s) generated, ${scenes.length - generated} cache
 
 // Runtime report: what the composition will use, scene by scene.
 const clipsPath = join(root, "public/clips/index.json");
-const clips = existsSync(clipsPath) ? JSON.parse(readFileSync(clipsPath, "utf8")) : [];
-const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
+const clips = existsSync(clipsPath) ? JSON.parse(readFileSync(clipsPath, "utf8")) : {};
+const fmt = (sec) => {
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
 let runtime = 0;
 for (const scene of scenes) {
-  const seconds = sceneSeconds(scene, manifest[scene.id].seconds, clips.includes(scene.id));
-  const slot = scene.minSeconds ? (clips.includes(scene.id) ? `  recording (${scene.minSeconds}s)` : `  recording slot empty (+${Math.max(0, scene.minSeconds - seconds).toFixed(0)}s when filled)`) : "";
+  const seconds = sceneSeconds(scene, manifest[scene.id].seconds, clips[scene.id]);
+  const slot = clips[scene.id]
+    ? `  recording (${clips[scene.id]}s)`
+    : scene.minSeconds
+      ? `  recording slot empty (about +${Math.max(0, scene.minSeconds - seconds).toFixed(0)}s when filled)`
+      : "";
   console.log(`${fmt(runtime).padStart(5)}  ${scene.id.padEnd(16)} ${seconds.toFixed(1).padStart(5)}s${slot}`);
   runtime += seconds;
 }

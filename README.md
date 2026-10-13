@@ -104,7 +104,7 @@ An earlier version distilled runs into a shared library of verified skills with 
 ```
 packages/codemode-git/   the plugin: history connector, Artifacts sink, examples (Vectorize)
 examples/agent/          a stock Code Mode agent with a paginated `lamps` connector (a lava lamp wall)
-benchmarks/dabstep/      DABstep harness: stock Code Mode vs Code Mode + codemode-git
+benchmarks/dabstep/      DABstep harness: stock Code Mode vs Code Mode + codemode-git (see its README to run it)
 ```
 
 ## Run the example

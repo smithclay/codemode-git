@@ -5,8 +5,6 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Built with cf](https://img.shields.io/badge/built%20with-cf%20CLI-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/cf/)
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/smithclay/codemode-git/tree/main/examples/agent)
-
 [![Watch the 5-minute demo](docs/assets/demo-poster.jpg)](https://github.com/smithclay/codemode-git/releases/download/demo-video/codemode-git-demo.mp4)
 
 **`codemode-git` gives Code Mode agents code memory on Cloudflare Artifacts.** Keep the code, and your Workers get smarter over time.
@@ -57,7 +55,7 @@ const runtime = history.bind(
   createCodemodeRuntime({
     ctx: this.ctx,
     executor: new DynamicWorkerExecutor({ loader: this.env.LOADER }),
-    connectors: [github, history] // <- add the connector
+    connectors: [lamps, history] // your agent's connectors, plus history
   })
 );
 ```

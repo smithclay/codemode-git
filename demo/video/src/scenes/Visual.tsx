@@ -22,6 +22,7 @@ export function Visual({ visual, cue }: { visual: VisualKind; cue: Cue }) {
     scale: () => <Scale />,
     recall: () => <Recall cue={cue} />,
     walkthrough: () => <Walkthrough cue={cue} />,
+    provenance: () => <RepoLog />,
     curve: () => <Curve cue={cue} />,
     accuracy: () => <Accuracy cue={cue} />,
     contagion: () => <Contagion cue={cue} />,
@@ -502,45 +503,46 @@ function Recall({ cue }: { cue: Cue }) {
   );
 }
 
-function Lane({ y, name, runs, tokens, maxTokens, at, color }: {
-  y: number; name: string; runs: ("error" | "ok")[]; tokens: number; maxTokens: number; at: number; color: string;
+function Lane({ y, label, runs, tokensK, maxTokensK, correct, at, color }: {
+  y: number; label: string; runs: number; tokensK: number; maxTokensK: number; correct: boolean; at: number; color: string;
 }) {
   const t = useSeconds();
+  const step = 0.18;
+  const verdictAt = at + 0.6 + runs * step;
   return (
     <g>
-      <Agent x={230} y={y} r={50} color={color} label={name} p={ramp(t, at - 0.4, at)} />
-      {runs.map((r, i) => (
-        <g key={i} opacity={ramp(t, at + 0.6 + i * 0.9, at + 1 + i * 0.9)}>
-          <rect x={360 + i * 150} y={y - 45} width={130} height={90} rx={14} fill={theme.panel} stroke={r === "ok" ? theme.green : theme.red} strokeWidth={3} />
-          <Label x={425 + i * 150} y={y} size={36} color={r === "ok" ? theme.green : theme.red}>{r === "ok" ? "✓" : "✗"}</Label>
+      <Agent x={230} y={y} r={50} color={color} label={label} p={ramp(t, at - 0.4, at)} />
+      {Array.from({ length: runs }, (_, i) => (
+        <g key={i} opacity={ramp(t, at + 0.4 + i * step, at + 0.6 + i * step)}>
+          <rect x={340 + i * 78} y={y - 32} width={64} height={64} rx={12} fill={theme.panel} stroke={theme.border} strokeWidth={2.5} />
+          <Label x={372 + i * 78} y={y} size={22} color={theme.muted} mono weight={400}>{"{}"}</Label>
         </g>
       ))}
-      <g opacity={ramp(t, at + 1, at + 1.5)}>
-        <rect x={1100} y={y - 22} width={640 * ramp(t, at + 1, at + 2.5) * (tokens / maxTokens)} height={44} rx={10} fill={color} />
-        <Label x={1100} y={y - 50} size={22} anchor="start" color={theme.muted} weight={500}>tokens</Label>
+      <g opacity={ramp(t, verdictAt, verdictAt + 0.3)}>
+        <circle cx={340 + runs * 78 + 50} cy={y} r={40} fill="none" stroke={correct ? theme.green : theme.red} strokeWidth={4} />
+        <Label x={340 + runs * 78 + 50} y={y + 2} size={44} color={correct ? theme.green : theme.red} weight={800}>{correct ? "✓" : "✗"}</Label>
+      </g>
+      <g opacity={ramp(t, verdictAt + 0.2, verdictAt + 0.6)}>
+        <rect x={340} y={y + 62} width={Math.max(8, 1080 * (tokensK / maxTokensK) * ramp(t, verdictAt + 0.2, verdictAt + 1.4))} height={26} rx={8} fill={color} />
+        <Label x={340 + Math.max(8, 1080 * (tokensK / maxTokensK)) + 20} y={y + 76} size={26} anchor="start" color={color} weight={700}>
+          {tokensK}k tokens · {runs} runs
+        </Label>
       </g>
     </g>
   );
 }
 
 function Walkthrough({ cue }: { cue: Cue }) {
-  const tM = cue("Michelle asks", 2);
-  const tT = cue("Matthew asks", 9);
   const d = walkthrough;
-  const max = Math.max(d.michelle.tokens, d.matthew.tokens);
+  const tWithout = cue("Without memory", 4);
+  const tWith = cue("With memory", 9);
+  const max = Math.max(d.without.tokensK, d.with.tokensK);
   return (
     <Canvas>
-      <Kicker>THE LAVA LAMP WALL</Kicker>
-      <g opacity={0.25}>
-        {Array.from({ length: 12 }, (_, i) => (
-          <LavaLamp key={i} x={1180 + i * 56} y={70} wax={WAX[(i * 3) % WAX.length]!} seed={i} scale={0.55} />
-        ))}
-      </g>
-      <Lane y={370} name="michelle" runs={d.michelle.runs} tokens={d.michelle.tokens} maxTokens={max} at={tM} color={theme.text} />
-      <Lane y={700} name="matthew" runs={d.matthew.runs} tokens={d.matthew.tokens} maxTokens={max} at={tT} color={theme.amber} />
-      {d.illustrative && (
-        <Label x={1740} y={960} size={20} anchor="end" color={theme.muted} weight={400}>illustrative · fill in from examples/agent/scripts/walkthrough.mjs</Label>
-      )}
+      <Kicker p={useIn(0.2)}>DABSTEP · TASK {d.task} · HARD</Kicker>
+      <Label x={120} y={190} size={34} anchor="start" weight={600} opacity={useIn(0.5)}>{d.question}</Label>
+      <Lane y={420} label="no memory" runs={d.without.runs} tokensK={d.without.tokensK} maxTokensK={max} correct={d.without.correct} at={tWithout} color={theme.muted} />
+      <Lane y={720} label="with memory" runs={d.with.runs} tokensK={d.with.tokensK} maxTokensK={max} correct={d.with.correct} at={tWith} color={theme.amber} />
     </Canvas>
   );
 }

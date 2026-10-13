@@ -13,10 +13,11 @@ export const accuracy = [
   { level: "Overall (450)", baseline: 32.2, examples: 46.2 }
 ];
 
-// michelle → matthew on the lava lamp wall. Illustrative until filled in from
-// a recorded run of examples/agent/scripts/walkthrough.mjs.
+// DABstep task 2557 (hard), from docs/experiments.md runs and Adyen's
+// official per-task scores: the same agent and prompt, without and with memory.
 export const walkthrough = {
-  illustrative: true,
-  michelle: { runs: ["error", "ok", "ok"] as ("error" | "ok")[], tokens: 3 },
-  matthew: { runs: ["ok"] as ("error" | "ok")[], tokens: 1 }
+  task: "2557",
+  question: "Fee 64 applied only to account type S in 2023: which merchants are affected?",
+  without: { runs: 10, tokensK: 279, correct: false, answer: "Not Applicable (ran out of steps)" },
+  with: { runs: 2, tokensK: 8, correct: true, answer: "correct", examples: ["t2556", "t2563", "t2575"] }
 };

@@ -24,6 +24,7 @@ export type Visual =
   | "recall"
   | "walkthrough"
   | "repo"
+  | "provenance"
   | "curve"
   | "accuracy"
   | "contagion"
@@ -63,7 +64,8 @@ export const scenes: Scene[] = [
   { id: "repo", visual: "repo", minSeconds: 30 },
   { id: "scale", visual: "scale", minSeconds: 25 },
   { id: "recall", visual: "recall" },
-  { id: "walkthrough", visual: "walkthrough", minSeconds: 60 },
+  { id: "walkthrough", visual: "walkthrough" },
+  { id: "provenance", visual: "provenance", minSeconds: 35 },
   { id: "curve", visual: "curve" },
   { id: "accuracy", visual: "accuracy" },
   { id: "contagion", visual: "contagion" },

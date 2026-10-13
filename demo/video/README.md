@@ -1,6 +1,6 @@
 # Demo video
 
-The competition demo, built with [Remotion](https://www.remotion.dev/). The voiceover is generated on Workers AI with Deepgram Aura-2 (`@cf/deepgram/aura-2-en`), and Whisper (`@cf/openai/whisper`) supplies word timings for the captions. The narration is in [transcript.md](transcript.md), one `## <scene>` section per scene. Scene order, diagrams and recording slots are in [src/script.ts](src/script.ts). The run of show it follows is in [DEMO.md](../../DEMO.md).
+The competition demo, built with [Remotion](https://www.remotion.dev/). The voiceover is generated on Workers AI with Deepgram Aura-2 (`@cf/deepgram/aura-2-en`, voice `arcas`, uncompressed WAV), and Whisper (`@cf/openai/whisper`) supplies word timings for the captions. The narration is in [transcript.md](transcript.md), one `## <scene>` section per scene. Scene order, diagrams and recording slots are in [src/script.ts](src/script.ts). The run of show it follows is in [DEMO.md](../../DEMO.md).
 
 This package sits outside the repo's npm workspaces, so Remotion's headless Chrome doesn't affect CI or the library install.
 

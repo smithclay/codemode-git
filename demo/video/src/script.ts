@@ -35,7 +35,7 @@ export type Visual =
 // `extraHold` lengthens a scene past its voiceover, e.g. for credits.
 export type Scene = { id: string; visual: Visual; minSeconds?: number; extraHold?: number };
 
-export const SPEAKER = "orion";
+export const SPEAKER = "arcas";
 
 // Seconds of silence before each line and after it. Keep these small: Aura's
 // own phrasing already has natural pauses, and long holds read as dead air.

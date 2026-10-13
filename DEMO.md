@@ -39,10 +39,9 @@ The video is code: [demo/video](demo/video). [transcript.md](demo/video/transcri
 | 3 | **Every agent starts from zero** | A grid of agents, each writing code that dissolves | The problem |
 | 4 | **Code Mode** | Before: model ⇄ tools ping-pong. After: one program in an isolate | Brief context; the code is the plan |
 | 5 | **The gap** | The isolate collapses, and the code falls away | The plan is thrown away |
-| 6 | **Phase 1: code memory** | Agents → their own Artifacts repos, with commits stacking up | 1 repo per agent, 1 writer per repo, 0 merges |
+| 6 | **Phase 1: code memory** | Agents → their own Artifacts repos, with commits stacking up; then the measured swarm result | 1 repo per agent, 1 writer per repo, 0 merges; 1,000 agents committed at once in 27s with 0 errors |
 | 7 | **Under the hood** | execution ends → Durable Object SQLite outbox → isomorphic-git → Artifacts | How the write path works |
 | 8 | **Every attempt, in git** (≥30s) | `git log` of an agent: error, fix, answer | Slot for a VHS recording |
-| 9 | **One repo per agent** (≥25s) | 1,000 squares lighting up | Slot for the swarm recording |
 | 10 | **Phase 2: learning** | michelle's repo → Workers AI → Vectorize → matthew. A provenance arrow back | Retrieval and `Codemode-Examples` |
 | 11 | **Lava lamp wall** (≥60s) | michelle and matthew lanes: runs ✓/✗ and token bars | Slot for the real `walkthrough.mjs` run |
 | 12 | **Learning curve** | Median tokens by run position, baseline vs memory | Cold start, then about a third |

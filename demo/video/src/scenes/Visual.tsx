@@ -19,7 +19,6 @@ export function Visual({ visual, cue }: { visual: VisualKind; cue: Cue }) {
     memory: () => <Memory cue={cue} />,
     "under-the-hood": () => <UnderTheHood cue={cue} />,
     repo: () => <RepoLog />,
-    scale: () => <Scale />,
     recall: () => <Recall cue={cue} />,
     walkthrough: () => <Walkthrough cue={cue} />,
     provenance: () => <RepoLog />,
@@ -370,6 +369,7 @@ function Memory({ cue }: { cue: Cue }) {
   const t = useSeconds();
   const tCommit = cue("commit", 1.6);
   const tOne = cue("One repo", 9);
+  const tSwarm = cue("a thousand agents", 99);
   return (
     <Canvas>
       <Kicker p={useIn(0.2)}>PHASE 1 · CODE MEMORY</Kicker>
@@ -387,8 +387,11 @@ function Memory({ cue }: { cue: Cue }) {
           </g>
         );
       })}
-      <Label x={960} y={1000 - 40} size={36} color={theme.muted} weight={500} opacity={ramp(t, tOne - 0.2, tOne + 0.4)}>
+      <Label x={960} y={1000 - 40} size={36} color={theme.muted} weight={500} opacity={ramp(t, tOne - 0.2, tOne + 0.4) * (1 - ramp(t, tSwarm - 0.6, tSwarm - 0.2))}>
         1 repo per agent · 1 writer per repo · 0 merges
+      </Label>
+      <Label x={960} y={1000 - 40} size={36} color={theme.amber} weight={700} opacity={ramp(t, tSwarm - 0.2, tSwarm + 0.3)}>
+        1,000 agents · 1,000 commits · 27s · 0 errors
       </Label>
     </Canvas>
   );
@@ -447,28 +450,6 @@ function RepoLog() {
         </Label>
       ))}
       <Label x={1740} y={820} size={20} anchor="end" color={theme.muted} weight={400}>illustrative · replaced by a recording (public/clips/repo.mp4)</Label>
-    </Canvas>
-  );
-}
-
-function Scale() {
-  const t = useSeconds();
-  const cols = 50, rows = 20, size = 26, gap = 6;
-  const x0 = (1920 - cols * (size + gap)) / 2;
-  const cells = [];
-  for (let i = 0; i < cols * rows; i++) {
-    const lit = ramp(t, 0.5 + (i % 37) * 0.04 + Math.floor(i / cols) * 0.18, 1 + (i % 37) * 0.04 + Math.floor(i / cols) * 0.18);
-    cells.push(
-      <rect key={i} x={x0 + (i % cols) * (size + gap)} y={240 + Math.floor(i / cols) * (size + gap)} width={size} height={size} rx={5} fill={lit > 0.5 ? theme.orange : theme.panel} opacity={0.35 + 0.65 * lit} />
-    );
-  }
-  return (
-    <Canvas>
-      <Kicker>ONE REPO PER AGENT</Kicker>
-      {cells}
-      <Label x={960} y={940} size={36} color={theme.muted} weight={500} opacity={useIn(1)}>
-        each square: an agent and its Artifacts repo
-      </Label>
     </Canvas>
   );
 }

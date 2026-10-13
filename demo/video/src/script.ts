@@ -20,7 +20,6 @@ export type Visual =
   | "gap"
   | "memory"
   | "under-the-hood"
-  | "scale"
   | "recall"
   | "walkthrough"
   | "repo"
@@ -62,7 +61,6 @@ export const scenes: Scene[] = [
   { id: "code-memory", visual: "memory" },
   { id: "under-the-hood", visual: "under-the-hood" },
   { id: "repo", visual: "repo", minSeconds: 30 },
-  { id: "scale", visual: "scale", minSeconds: 25 },
   { id: "recall", visual: "recall" },
   { id: "walkthrough", visual: "walkthrough" },
   { id: "provenance", visual: "provenance", minSeconds: 35 },

@@ -1,5 +1,5 @@
 export { GitHistoryConnector, type GitHistoryOptions } from "./connector.js";
-export { ArtifactsSink, type ArtifactsSinkOptions, type GitSink } from "./sink.js";
+export { ArtifactsSink, type ArtifactsSinkOptions, type GitSink, type SinkCommit } from "./sink.js";
 export {
   FILES,
   TRAILERS,

@@ -3,10 +3,13 @@ import http from "isomorphic-git/http/web";
 import type { CommitContent } from "./format.js";
 import { MemoryFS } from "./memory-fs.js";
 
+/** A commit to write: like CommitContent, but a `null` file deletes that path. */
+export type SinkCommit = Omit<CommitContent, "files"> & { files: Record<string, string | null> };
+
 /** Where commits go. Swappable so the plugin isn't tied to one git host. */
 export interface GitSink {
   /** Commit `content` on top of the branch head and publish it. Returns the commit sha. */
-  commit(content: CommitContent): Promise<string>;
+  commit(content: SinkCommit): Promise<string>;
   /** Read a file at a ref, or null if it doesn't exist. */
   read(ref: string, path: string): Promise<string | null>;
 }
@@ -63,7 +66,7 @@ export class ArtifactsSink implements GitSink {
     };
   }
 
-  commit(content: CommitContent): Promise<string> {
+  commit(content: SinkCommit): Promise<string> {
     const run = this.#queue.then(async () => {
       try {
         return await this.#commitOnce(content);
@@ -87,9 +90,14 @@ export class ArtifactsSink implements GitSink {
     }
   }
 
-  async #commitOnce({ message, files, timestamp }: CommitContent): Promise<string> {
+  async #commitOnce({ message, files, timestamp }: SinkCommit): Promise<string> {
     const fs = await this.#checkout();
     for (const [path, contents] of Object.entries(files)) {
+      if (contents === null) {
+        await fs.promises.unlink(`${DIR}/${path}`).catch(() => {});
+        await git.remove({ fs, dir: DIR, filepath: path });
+        continue;
+      }
       await fs.promises.writeFile(`${DIR}/${path}`, contents);
       await git.add({ fs, dir: DIR, filepath: path });
     }
@@ -117,9 +125,13 @@ export class ArtifactsSink implements GitSink {
     if (this.#fs) return this.#fs;
     const { branch } = this.#options;
     const fs = new MemoryFS();
-    const pushedBefore = await this.#ensureRepo();
-    if (pushedBefore) {
-      const auth = await this.#auth();
+    const created = await this.#ensureRepo();
+    const auth = await this.#auth();
+    // Ask the remote whether the branch exists rather than trusting the repo's
+    // lastPushAt, which Artifacts can leave null after git pushes: a cold
+    // start would then init a new root commit and every push would be rejected.
+    const hasBranch = !created && (await this.#remoteHasBranch(auth));
+    if (hasBranch) {
       await git.clone({
         fs,
         http,
@@ -138,7 +150,13 @@ export class ArtifactsSink implements GitSink {
     return fs;
   }
 
-  /** Make sure the repo exists and we know its remote. Returns whether it has ever been pushed to. */
+  async #remoteHasBranch(auth: { username: string; password: string }): Promise<boolean> {
+    const ref = `refs/heads/${this.#options.branch}`;
+    const refs = await git.listServerRefs({ http, url: this.#remote!, prefix: ref, onAuth: () => auth });
+    return refs.some((r) => r.ref === ref);
+  }
+
+  /** Make sure the repo exists and we know its remote. Returns whether it was just created (and so is empty). */
   async #ensureRepo(): Promise<boolean> {
     const { artifacts, repo: name, description, branch } = this.#options;
     let repo: ArtifactsRepo;
@@ -149,12 +167,11 @@ export class ArtifactsSink implements GitSink {
       const created = await artifacts.create(name, { description, setDefaultBranch: branch });
       this.#remote = created.remote;
       this.#setToken(created.token);
-      return false;
+      return true;
     }
     try {
-      const info = await repo.info();
-      this.#remote = info.remote;
-      return info.lastPushAt !== null;
+      this.#remote = (await repo.info()).remote;
+      return false;
     } finally {
       repo[Symbol.dispose]();
     }

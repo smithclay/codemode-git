@@ -41,9 +41,14 @@ describe.skipIf(!remote || !token)("ArtifactsSink against a real repo", () => {
     const sha2 = await first.commit(toCommit(exec("two"), "completed", "smoke two"));
     expect(sha1).not.toBe(sha2);
 
-    state.lastPushAt = new Date().toISOString();
+    // Artifacts can leave lastPushAt null after git pushes; a cold sink must still clone.
     const cold = new ArtifactsSink({ artifacts: fakeBinding(state), repo: "smoke" });
     const sha3 = await cold.commit(toCommit(exec("three"), "error", "smoke three"));
     expect(sha3).toMatch(/^[0-9a-f]{40}$/);
+
+    // A null file deletes it.
+    const added = await cold.commit({ message: "smoke add", files: { "scratch.txt": "x" }, timestamp: Date.now() });
+    const removed = await cold.commit({ message: "smoke delete", files: { "scratch.txt": null }, timestamp: Date.now() });
+    expect(removed).not.toBe(added);
   }, 60_000);
 });

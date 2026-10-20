@@ -5,7 +5,8 @@
   "workspaces": [
     "packages/*",
     "examples/*",
-    "benchmarks/*"
+    "benchmarks/*",
+    "demo/deck"
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",

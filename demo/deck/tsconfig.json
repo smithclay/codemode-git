@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["es2023", "esnext.disposable", "dom"],
+    "jsx": "react-jsx",
+    "types": ["@cloudflare/workers-types", "vite/client"]
+  },
+  "include": ["src"]
+}

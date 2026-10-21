@@ -1,0 +1,48 @@
+/*
+ * The presenter around the slides: stage, badge, notes, chat, print. Values
+ * come from tokens.css; slide elements are styled in slide.css.
+ */
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-sans); overflow: hidden; }
+
+.stage { position: fixed; inset: 0; display: grid; place-items: center; cursor: default; user-select: none; }
+.stage.empty { color: var(--muted); }
+.slide { width: 100vw; height: 100vh; display: block; }
+
+.unbuilt { width: min(1100px, 86vw); }
+.unbuilt .kicker { color: var(--orange); font-weight: var(--weight-bold); letter-spacing: 0.04em; font-size: clamp(13px, 1.4vw, 20px); }
+.unbuilt p { color: var(--muted); font-size: clamp(18px, 2.2vw, 32px); line-height: 1.45; margin-top: 1em; }
+
+.badge { position: fixed; right: 16px; bottom: 12px; display: flex; gap: 14px; font: 13px/1 var(--font-mono); color: var(--muted); opacity: 0.7; }
+.badge a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.badge a:hover { color: var(--orange); }
+.badge .editing { color: var(--amber); }
+.pulse { color: var(--orange); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+
+.notes { position: fixed; left: 16px; right: 16px; bottom: 40px; max-width: 980px; margin: 0 auto; max-height: 40vh; overflow: auto; background: color-mix(in srgb, var(--panel) 94%, transparent); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; font-size: 18px; line-height: 1.5; user-select: text; }
+.notes h2 { margin: 0 0 6px; font: var(--weight-semibold) 13px var(--font-mono); color: var(--orange); }
+.notes p { margin: 0 0 10px; }
+.notes .prompt { color: var(--muted); font-size: 15px; }
+
+.toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--amber); color: var(--amber); border-radius: 999px; padding: 8px 18px; font-size: 15px; }
+
+.chat { position: fixed; top: 16px; right: 16px; bottom: 44px; width: min(420px, calc(100vw - 32px)); display: flex; flex-direction: column; background: color-mix(in srgb, var(--panel) 96%, transparent); border: 1px solid var(--border); border-radius: 12px; user-select: text; cursor: auto; }
+.chat header { padding: 12px 16px; font-weight: var(--weight-bold); border-bottom: 1px solid var(--border); }
+.chat header span { color: var(--muted); font: var(--weight-regular) 13px var(--font-mono); }
+.chat .log { flex: 1; overflow: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.chat .log p { margin: 0; padding: 8px 12px; border-radius: 10px; line-height: 1.45; font-size: 15px; max-width: 90%; white-space: pre-wrap; }
+.chat .user { align-self: flex-end; background: var(--user-bubble); border: 1px solid var(--user-bubble-border); }
+.chat .assistant { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); }
+.chat .hint { color: var(--muted); }
+.chat textarea { margin: 12px; padding: 10px 12px; resize: none; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 15px; }
+.chat textarea:focus { outline: none; border-color: var(--orange); }
+
+/* ?print: one slide per 16:9 page, no fade (npm run pdf). */
+@page { size: 1920px 1080px; margin: 0; }
+body.print { overflow: visible; }
+body.print .page { width: 1920px; height: 1080px; break-after: page; background: var(--bg); }
+body.print .slide { width: 1920px; height: 1080px; }
+body.print .slide { animation: none; }
+@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

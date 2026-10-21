@@ -1,0 +1,63 @@
+/*
+ * Design tokens: the one place the deck's look is defined. slide.css and
+ * deck.css use them, and tokens.ts reads the few numbers the layout checker
+ * needs (marked "layout"), so the Worker's check and the drawn slide agree.
+ * Colors match the demo video (../video/src/theme.ts).
+ *
+ * Slide sizes are canvas pixels: a slide is a 1920×1080 SVG, scaled to fit.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Color */
+  --bg: #0f1115;
+  --panel: #181b22;
+  --border: #2a2f3a;
+  --text: #eef0f4;
+  --muted: #9aa3b2;
+  --orange: #f38020;
+  --amber: #fbad41;
+  --green: #3ecf8e;
+  --red: #ef5b5b;
+  --user-bubble: #2a1f14;
+  --user-bubble-border: #5a3a1a;
+
+  /* Type */
+  --font-sans: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-heavy: 800;
+
+  /* Slide type */
+  --kicker-size: 30px; /* layout */
+  --text-size: 40px; /* layout: a text element without its own size */
+  --box-label-size: 30px;
+  --box-sub-size: 20px;
+  --agent-label-size: 24px;
+  --code-size: 26px; /* layout */
+  --code-line: 38px; /* layout: line height in a code panel */
+  --code-title-size: 20px;
+  --chart-value-size: 36px;
+  --chart-category-size: 28px;
+  --chart-axis-size: 24px;
+  --chart-legend-size: 24px;
+
+  /* Lines and corners */
+  --radius-panel: 18px; /* layout */
+  --radius-bar: 10px; /* layout */
+  --stroke-panel: 2.5px;
+  --stroke-code: 2px;
+  --stroke-arrow: 4px;
+  --stroke-agent: 3px;
+  --stroke-axis: 2px;
+  --stroke-series: 6px;
+  --stroke-series-accent: 8px;
+  --dash-panel: 12 10;
+  --dash-arrow: 10 10;
+
+  /* Motion: a slide fades in once when it appears. */
+  --slide-fade: 200ms;
+}

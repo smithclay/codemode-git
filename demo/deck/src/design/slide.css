@@ -1,0 +1,55 @@
+/*
+ * How slide elements look. SlideView.tsx draws a slide spec as SVG with these
+ * classes and positions; everything visual comes from tokens.css. An element's
+ * color token (spec `color`) arrives as a c-* class that sets --c.
+ */
+
+.slide { font-family: var(--font-sans); animation: slide-in var(--slide-fade) ease-out; }
+@keyframes slide-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .slide { animation: none; } }
+
+.slide text { dominant-baseline: middle; }
+.slide .mono { font-family: var(--font-mono); }
+
+.kicker { fill: var(--orange); font-size: var(--kicker-size); font-weight: var(--weight-bold); }
+
+/* text: font-size comes from the spec */
+.t { fill: var(--c, var(--text)); font-weight: var(--weight-semibold); }
+.t.bold { font-weight: var(--weight-heavy); }
+.t.mono { font-weight: var(--weight-regular); }
+
+.box rect { fill: var(--panel); stroke: var(--c, var(--border)); stroke-width: var(--stroke-panel); }
+.box.dashed rect { stroke-dasharray: var(--dash-panel); }
+.box .label { fill: var(--text); font-size: var(--box-label-size); font-weight: var(--weight-semibold); }
+.box .sub { fill: var(--muted); font-size: var(--box-sub-size); font-weight: var(--weight-regular); }
+
+.arrow { stroke: var(--c, var(--orange)); stroke-width: var(--stroke-arrow); stroke-linecap: round; }
+.arrow.dashed { stroke-dasharray: var(--dash-arrow); }
+.arrowhead { fill: var(--c); }
+
+.agent circle { fill: var(--panel); stroke: var(--c, var(--text)); stroke-width: var(--stroke-agent); }
+.agent .label { fill: var(--muted); font-size: var(--agent-label-size); font-weight: var(--weight-medium); }
+
+.code rect { fill: var(--panel); stroke: var(--border); stroke-width: var(--stroke-code); }
+.code .title { fill: var(--amber); font-size: var(--code-title-size); font-weight: var(--weight-regular); }
+.code .line { fill: var(--text); font-size: var(--code-size); font-weight: var(--weight-regular); }
+.code .line.cmd { fill: var(--green); }
+.code .line.err { fill: var(--red); }
+
+.chart .axis { stroke: var(--border); stroke-width: var(--stroke-axis); }
+.chart .legend { fill: var(--muted); font-size: var(--chart-legend-size); font-weight: var(--weight-medium); }
+.chart .category { fill: var(--muted); font-size: var(--chart-category-size); font-weight: var(--weight-medium); }
+.chart .tick { fill: var(--muted); font-size: var(--chart-axis-size); font-weight: var(--weight-regular); }
+.chart .swatch, .chart .bar { fill: var(--c); }
+.chart .value { fill: var(--c); font-size: var(--chart-value-size); font-weight: var(--weight-heavy); }
+.chart .series path { fill: none; stroke: var(--c); stroke-width: var(--stroke-series); stroke-linejoin: round; stroke-linecap: round; }
+.chart .series.accent path { stroke-width: var(--stroke-series-accent); }
+.chart .series circle { fill: var(--c); }
+
+/* Color tokens a spec can name. Last, so they win over the defaults above. */
+.c-text { --c: var(--text); }
+.c-muted { --c: var(--muted); }
+.c-orange { --c: var(--orange); }
+.c-amber { --c: var(--amber); }
+.c-green { --c: var(--green); }
+.c-red { --c: var(--red); }
